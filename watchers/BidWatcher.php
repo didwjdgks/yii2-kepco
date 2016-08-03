@@ -7,7 +7,7 @@ class BidWatcher extends Watcher
 
   public $post_data;
 
-  public function watch(){
+  public function watch($callback){
     $this->post_data=[
       'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidListController',
       'data'=>[
@@ -43,7 +43,7 @@ class BidWatcher extends Watcher
 
       $rows=$res[0]['result']['records'];
       foreach($rows as $row){
-        echo $row['name'],PHP_EOL;
+        $callback($row);
       }
 
       echo "page : $page\n";

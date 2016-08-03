@@ -14,9 +14,9 @@ class Http extends \yii\base\Component
       'base_uri'=>'http://203.248.44.161',
       'cookies'=>true,
       'headers'=>[
-        'User-Agent'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-        'Cookie'=>'SRM_ID=G7g0K1SXBZACMGAwFqs3P9MY_Qlqknp-y0pMMGv7QWVIVDTiKGgQ!-220352303!-1759289166; org.springframework.web.servlet.theme.CookieThemeResolver.THEME=default',
-        'X-CSRF-TOKEN'=>'b9838610-e07b-475a-9650-c2aea00dc500',
+        'User-Agent'=>'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
+        'Cookie'=>'SRM_ID=eJhO0lpGEbFnoZBNxa9nBLs0K1dGMkXTIkKgdJi6YMTMWQx7yYUo!-419358261!NONE; org.springframework.web.servlet.theme.CookieThemeResolver.THEME=default',
+        'X-CSRF-TOKEN'=>'4e492e1f-6158-4f91-91e7-c1c6ea583674',
       ],
     ]);
   }
