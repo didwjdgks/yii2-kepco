@@ -5,6 +5,8 @@ use yii\helpers\Json;
 use yii\helpers\Console;
 
 use kepco\workers\BidWorker;
+use kepco\workers\SucWorker;
+
 
 class WorkController extends \yii\console\Controller
 {
@@ -23,6 +25,7 @@ class WorkController extends \yii\console\Controller
       ]);
       $data=$worker->run();
       print_r($data);
+      sleep(1);
     });
     while($w->work());
   }
@@ -30,9 +33,14 @@ class WorkController extends \yii\console\Controller
     $w=new \GearmanWorker;
     $w->addServers('127.0.0.1');
     $w->addFunction('kepco_work_suc',function($job){
-      echo $job->workload().PHP_EOL;
       $workload=Json::decode($job->workload());
-      print_r($workload);
+      $this->stdout2("kepco> %g{$workload['id']}%n {$workload['notinum']} {$workload['constnm']}\n");
+      $worker=new SucWorker([
+        'id'=>$workload['id'],
+      ]);
+        $data =$worker->run();
+        print_r($data);
+        sleep(1);
       });
       while($w->work());
   }

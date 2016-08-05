@@ -15,8 +15,8 @@ class Http extends \yii\base\Component
       'cookies'=>true,
       'headers'=>[
         'User-Agent'=>'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-        'Cookie'=>'SRM_ID=eJhO0lpGEbFnoZBNxa9nBLs0K1dGMkXTIkKgdJi6YMTMWQx7yYUo!-419358261!NONE; org.springframework.web.servlet.theme.CookieThemeResolver.THEME=default',
-        'X-CSRF-TOKEN'=>'4e492e1f-6158-4f91-91e7-c1c6ea583674',
+        'Cookie'=>'WMONID=NHxChMXNQuU; SRM_ID=oo5ZDR8UMcbT85yY592ZbILF30076LuVEsyjU8loFFBM3guRXlll!-931456640!-1234176548',
+        'X-CSRF-TOKEN'=>'7c119e43-07a6-4676-bffb-9396f013b8cf',
       ],
     ]);
   }

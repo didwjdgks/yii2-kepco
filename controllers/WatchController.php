@@ -68,6 +68,9 @@ class WatchController extends \yii\console\Controller
         $client->doBackground('kepco_work_suc',Json::encode([
           'notinum'=>$row['no'],
           'constnm'=>$row['name'],
+          'purchaseType'=>$row['purchaseType'],
+          'alldata'=>$row,
+          'id'=>$row['id'],
           ]));
           sleep(1);
           return;
@@ -76,10 +79,6 @@ class WatchController extends \yii\console\Controller
       });
       sleep(1);
     }
-  }
-  public function actionDetSuc(){
-    $bid =new SucWorker;
-    $bid->work();
   }
 }
 
