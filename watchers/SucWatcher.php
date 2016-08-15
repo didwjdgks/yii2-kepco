@@ -12,7 +12,7 @@ class SucWatcher extends Watcher
       'data'=>[
       [
         'companyId'=>'ALL',
-        'fromNoticeData'=>date('Y-m-d',strtotime('-7 day')).'T00:00:00',
+        'fromNoticeData'=>date('Y-m-d',strtotime('-10 day')).'T00:00:00',
         'toNoticeData'=>date('Y-m-d').'T00:00:00',
         'limit'=>100,
         'page'=>1,
@@ -42,6 +42,7 @@ class SucWatcher extends Watcher
       $rows=$res[0]['result']['records'];
       foreach($rows as $row){
        $callback($row);
+       
       }
       echo"page : $page\n";
       sleep(1);
