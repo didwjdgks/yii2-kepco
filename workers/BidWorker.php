@@ -43,22 +43,37 @@ class BidWorker extends Worker
         'tid'=>198,
         'type'=>"rpc",
       ],
+      [
+        'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
+        'method'=>'getAttachments',
+        'tid'=>82,
+        'type'=>'rpc',
+        'data'=>[
+          [
+            'groupId'=>$this->id,
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
+          ],
+         ],
+      ],
     ];
     $res=$this->post('/router',['json'=>$post_data]);
     foreach($res as $row){
       switch($row['method']){
         case 'findBidBasicInfo': $basicInfo=$row['result']; break;
         case 'getFileItemList': $fileList=$row['result']; break;
-				case 'findLicenseCodeData': $licenseInfo=$row['result']; break;
+        case 'findLicenseCodeData': $licenseInfo=$row['result']; break;
+        case 'getAttachments' : $fileList2=$row['result']; break;
       }    
 		}
 		
 		$bidtype = $basicInfo['itemType'];
 		
-		//°ø°í°Ô½Ã±â°üÄÚµå
+		//whereis
 		$data['whereis']	= '03';											
 		
-		//°ø°í±¸ºĞ,°ø°íºĞ·ù
+		//bidtype,bidview
 		if($bidtype=='Construction'){											
 			$data['bidtype']	= 'con';
 			$data['bidview']	= 'con';
@@ -70,38 +85,60 @@ class BidWorker extends Worker
 			$data['bidview']	= 'per';
 		}		
 		
-		//°ø°í¹øÈ£
+		//syscode
 		if($basicInfo['purchaseType']=='ConstructionService'){
-			if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$basicInfo['no'],$m)){
-				$data['old_notinum'] = $m[1].'-'.$m[2].'-'.$m[3];
-			}
+			$data['syscode'] = 'KBC';						
+			$data['bidtype']	= 'con';
+			$data['bidview']	= 'con';
 		}else if($basicInfo['purchaseType']=='Product'){
-			if(preg_match('/(\d{4})(\d{6})/',$basicInfo['no'],$m)){
-				$data['old_notinum'] = $m[1].'-'.$m[2];
-			}
+			$data['syscode'] = 'KPBC';
+			$data['bidtype']	= 'per';
+			$data['bidview']	= 'per';						
 		}
-		$data['notinum'] = $basicInfo['no'];
-		$data['notinum_ex'] = $basicInfo['revision'];
-		//°ø°í¸í
+
+		if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$basicInfo['no'],$m)){
+			$data['old_notinum'] = $m[1].'-'.$m[2].'-'.$m[3];
+		}
+		$data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
+		
+		//chasu
+		$data['orgcode_y'] = $basicInfo['revision'];
+
+		//constnm
 		$data['constnm'] = $basicInfo['name'];
 	
-		//¹ßÁÖ±â°ü
-		$data['org'] = $basicInfo['representativeDepartmentName'];
-		$data['org_i'] = $basicInfo['representativeDepartmentName'];
 		
-		//°Ô½Ã±â°ü str(bidid »ı¼º½Ã Á¶ÇÕ)
-		$orgstr = 'KEP';
-		//ÀÔÂûÁøÇà»óÅÂ
-		if($basicInfo['noticeType']=='New' || $basicInfo['noticeType']=='OnceMore'){
+		$company = array(
+			"COM01"		=>	"í•œêµ­ì „ë ¥ê³µì‚¬",
+			"COM02"		=>	"í•œêµ­ì„œë¶€ë°œì „(ì£¼)",
+			"COM03"		=>	"í•œêµ­ì „ë ¥êµ­ì œì›ìë ¥ëŒ€í•™ì›ëŒ€í•™êµ",
+			"COM04"		=>	"í•œêµ­ë‚¨ë¶€ë°œì „(ì£¼)",
+			"COM05"		=>	"í•œêµ­ì¤‘ë¶€ë°œì „(ì£¼)",
+			"COM06"		=>	"í•œêµ­ë‚¨ë™ë°œì „(ì£¼)",
+			"COM08"		=>	"í•œêµ­ë™ì„œë°œì „(ì£¼)",
+			"COM09"		=>	"í•œêµ­ì „ë ¥ê¸°ìˆ (ì£¼)",
+			"COM10"		=>	"í•œì „KPS(ì£¼)",
+			"COM11"		=>	"í•œêµ­ì „ë ¥ê±°ë˜ì†Œ",
+			"COM12"		=>	"í•œì „ì›ìë ¥ì—°ë£Œ(ì£¼)",
+			"COM14"		=>	"í•œêµ­ë°œì „êµìœ¡ì›",
+			"COM16"		=>	"í•œêµ­í•´ìƒí’ë ¥(ì£¼)",
+			"COM19"		=>	"ì¹´í˜ìŠ¤ ì£¼ì‹íšŒì‚¬",
+		);
+		//org
+		$data['org'] = $basicInfo['representativeDepartmentName'];
+
+		$data['org_i'] = $company[$basicInfo['companyId']].' '.$basicInfo['representativeDepartmentName'];
+		
+		
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	/*	if($basicInfo['noticeType']=='New' || $basicInfo['noticeType']=='OnceMore'){
 			$data['bidproc'] = 'B';
-			//bidid »ı¼º						
+			//bidid ï¿½ï¿½ï¿½ï¿½						
 			$now = new DateTime();
-			$fbidid = substr($now->format('YmdH'),2);			
-			//$tbidid = rand(0,9999);				
-			$tbidid = str_pad(mt_rand(0,9999),4,'0',STR_PAD_LEFT); // str_pad()·Î 4ÀÚ¸® ¸¸µé±â
-			$data['bidid'] = $fbidid.$orgstr.$tbidid.'-00-00-01';
+			$hbidid = substr($now->format('YmdHis'),2);						
+			$tbidid = str_pad(mt_rand(0,999),3,'0',STR_PAD_LEFT); // str_pad()ï¿½ï¿½ 3ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
+			$data['bidid'] = $hbidid.$tbidid.'-00-00-01';
 			
-			//$maxno=$this->module->db->createCommand("select max([[no]]) from {{bid_key}}")->queryScalar();
 		}
 		else if($basicInfo['noticeType']=='Correct'){
 			$data['bidproc'] = 'M';
@@ -112,8 +149,9 @@ class BidWorker extends Worker
           ->limit(1)->one();
 			
 			$old_bidid = $prev->bidid;
+			$data['old_bidid'] = $old_bidid;
 			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
-				$m[2] = (int)$m[2]++;
+				$m[2] = (int)$m[2]+1;
 				if($m[2] < 10)	$m[2] = '0'.(string)$m[2];
 				else $m[2] = (string)$m[2];
 				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
@@ -127,13 +165,14 @@ class BidWorker extends Worker
           ->limit(1)->one();
 			
 			$old_bidid = $prev->bidid;
+			$data['old_bidid'] = $old_bidid;
 			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
-				$m[2] = (int)$m[2]++;
+				$m[2] = (int)$m[2]+1;
 				if($m[2] < 10)	$m[2] = '0'.(string)$m[2];
 				else $m[2] = (string)$m[2];
 				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
 			}
-		// ÀçÅõÂû½Ã Ã³¸®
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½
 		}else if($basicInfo['noticeType']=='ReBidding'){
 			$data['bidproc'] = 'R';
 			$prev=$bidkey=BidKey::find() ->where("notinum='{$data['notinum']}' or notinum='{$data['old_notinum']}'")
@@ -142,75 +181,104 @@ class BidWorker extends Worker
           ->limit(1)->one();
 			
 			$old_bidid = $prev->bidid;
+			$data['old_bidid'] = $old_bidid;
 			//$old_bidid = '16080111KEP6091-00-00-01';
 			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
 				$m[3] = (int)$m[3]+1;
 				if($m[3] < 10)	$m[3] = '0'.(string)$m[3];
 				else $m[3] = (string)$m[3];
 				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
-			}else{
-				$data['bidid'] = '123456789012345-00-00-01';
 			}
-		}
+		}*/
 
-		//°è¾à¹æ¹ı
+		//contract
     if($basicInfo['competitionType']=='Limited')	$data['contract'] = '20';
     else if($basicInfo['competitionType']=='Open')	$data['contract'] = '10';
 
-		//ÀÔÂû¹æ½Ä
+		//bidcls
 		if($basicInfo['bidMethod']=='Electronic')	$data['bidcls'] = '01';
 		else if($basicInfo['bidMethod']=='Offline')	$data['bidcls'] = '00';		
 		
-		//³«Âû¹æ½Ä
+		//succls
     if($basicInfo['bidType']=='LowestPrice')	$data['succls'] = '02';
     else if($basicInfo['bidType']=='QualifiedEval')	$data['succls'] = '01';
 		else if($basicInfo['bidType']=='Nego') $data['succls'] = '07';
 		else if($basicInfo['bidType']=='LimitedLowestPrice')	$data['succls'] = '03';
 		else	$data['succls'] = '00';
 		
-		//¸éÇãÄÚµå
+		//license
 		$code = $data['bidtype'].'code';
 		$data[$code] = $licenseInfo['licenseQualificationCode'];
 
-		//°øµ¿¼ö±Ş¿©ºÎ
-		if($basicInfo['jointSupplyDemandYn'])	$data['opt'] = pow(2,8);
-
-		//ÃßÁ¤°¡°İ
+		//yegatype
+		$data['yegatype'] = '25';
+		
+		//convention
+		if($basicInfo['jointSupplyDemandYn'])	$data['convention'] = '2';
+		
+		//prsum
 		$data['presum'] = $basicInfo['presumedPrice'];
 		
-		//¿¹ºñ°¡°İ ±âÃÊ±İ¾×
+		//basic
 		$data['basic'] = $basicInfo['estimatedPriceBasicAmount'];
 		
-		//ÅõÂûÀ²(È®½ÇÄ¡´Â ¾ÊÀ½)
+		//pct(???)
 		$data['pct'] = $basicInfo['winningPriceLimitRate'];
 
-		//°ø°í°Ô½ÃÀÏ½Ã
+		//charger
+		$data['charger'] = $basicInfo['representativeName'].'|'.$basicInfo['representativePhoneNo'];
+		//noticedt
 		$data['noticedt'] = date('Y-m-d H:i:s',strtotime($basicInfo['noticeDateTime']));		
 		
-		//Âü°¡µî·Ï¸¶°¨ÀÏ½Ã
-		$data['registdt'] = date('Y-m-d H:i:s',strtotime($basicInfo['bidAttendRequestCloseDateTime']));		
+		//registdt
+		$data['registdt'] = date('Y-m-d H:i:s',strtotime($basicInfo['bidAttendRequestCloseDateTime']));
 
-		//ÀÔÂû°³½ÃÀÏ
+		//opendt
     $data['opendt'] = date('Y-m-d H:i:s',strtotime($basicInfo['beginDateTime']));
 
-		//ÀÔÂû¸¶°¨ÀÏ
+		//closedt
     $data['closedt'] = date('Y-m-d H:i:s',strtotime($basicInfo['endDateTime']));		
 		
-		//ÀÔÂûÀÏ½Ã
-    $data['constdt'] = date('Y-m-d H:i:s',strtotime($basicInfo['beginDateTime']));
+		//constdt
+    $data['constdt'] = date('Y-m-d H:i:s',strtotime($basicInfo['openBidDateTime']));
 		
-		//°ø°í»óÅÂ
+		//state
 		$data['state'] = 'N';
 
-		//ÀÔÂûÂü°¡ÀÚ°İ
-		$data['bidcomment'] = $basicInfo['etc']; // or $data['bidcomment']=$basicInfo['bidAttendRestrict'];
-		
     $files=[];
-    foreach($fileList as $file){
-      $filename=$file['name'];
-      $files[]=$filename;
-    }
-    $data['attchd_lnk']=join('|',$files);
+
+
+    if($data['bidtype'] == 'pur'){
+      
+      $data['bid_html'] = "ê³„ì•½ì¡°ê±´ ê³µì‹œì¥ì†Œ : <br>".$basicInfo['mailBidDistribution']."<br><br>"."ê³„ì•½ì°©ìˆ˜ì¼ ë° ì™„ë£Œì¼ : <br>".$basicInfo['contractBeginEndDate']."<br><br>"."ì…ì°°ì‹œ ì œì¶œì„œë¥˜ : <br>".$basicInfo['bidAttendDocument']. "<br><br>"."ì…ì°°ì°¸ê°€ìê²© : <br>".$basicInfo['bidAttendRestrict']."<br><br>"."ì…ì°°ë³´ì¦ê¸ˆê·€ì† : <br>".$basicInfo['bidBondBelong']."<br><br>"."ì…ì°°ë¬´íš¨ì‚¬í•­: <br>".$basicInfo['bidNullification']."<br><br>"."ì…ì°°ì°¸ê°€ì‹ ì²­ì„œë¥˜ : <br>". $basicInfo['bidAttendRequestDocument']."<br><br>"."ì¶”ê°€ì •ë³´ì œê³µì²˜ : <br>".$basicInfo['moreInformation']."<br><br>"."ê¸°íƒ€ê³µê³ ì‚¬í•­ : <br>".$basicInfo['etc'];
+
+			if ($fileList2 != NULL){
+				 foreach($fileList2 as $file){
+					 //$file['name'] = iconv('euc-kr','utf-8',$file['name']);
+					 //$file['name'] = iconv('utf-8','euc-kr',$file['name']);
+					 $filename=$file['name'].'#http://srm.kepco.net/DownloadAttachment.do?id='.$file['id'];
+					 $files[]=$filename;
+					}
+			 $att_lnk1 =join('|',$files);
+			}
+
+			$data['attchd_lnk'] = $att_lnk1;
+
+		}else{
+			if ($fileList != NULL){
+				 foreach($fileList as $file){
+					 //$file['name'] = iconv('euc-kr','utf-8',$file['name']);
+					 //$file['name'] = iconv('utf-8','euc-kr',$file['name']);
+					 $filename=$file['name'].'#http://srm.kepco.net/DownloadAttachment.do?id='.$file['id'];
+					 $files[]=$filename;
+					}
+			 $att_lnk1 =join('|',$files);
+			}
+
+			$data['attchd_lnk'] = $att_lnk1;
+			//bidcomment
+			$data['bidcomment'] = $basicInfo['etc']; // or $data['bidcomment']=$basicInfo['bidAttendRestrict'];
+		}
 
     return $data;
   }

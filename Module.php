@@ -7,6 +7,8 @@ use yii\di\Instance;
 class Module extends \yii\base\Module
 {
   public $db='db';
+  public $gman_server;
+  public $redis_server;
 
   public function init(){
     parent::init();

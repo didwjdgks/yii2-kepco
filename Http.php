@@ -7,18 +7,28 @@ class Http extends \yii\base\Component
 {
   public $client;
 
+  public $sub;
+  public $module;
+
   public function init(){
     parent::init();
 
+    $this->module=\kepco\Module::getInstance();
+
     $this->client=new \GuzzleHttp\Client([
       //'base_uri'=>'http://203.248.44.161/mdi.do',
-			'base_uri'=>'http://srm.kepco.net//mdi.do',
+			'base_uri'=>'http://srm.kepco.net/',
       'cookies'=>true,
       'headers'=>[
         'User-Agent'=>'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-        'Cookie'=>'WMONID=NHxChMXNQuU; pop25741=done; pop25641=done; pop25761=done; SRM_ID=kw6ODTbztNiX70OG-axStdZCkfGeIret4G1ZqN6c-z4sP16d0MiH!-1812632849!2047882231',
-        'X-CSRF-TOKEN'=>'f0efda81-470a-470a-88a8-15d7a9f0e438',
+        'Cookie'=>'WMONID=MjsXQm-vWwH; SRM_ID=j-GS3zuv5QwevGapawbknVdmnJUlBiRRoustWbAlLAC-PTxd8eJz!1386704706!-1013934162',
+        'X-CSRF-TOKEN'=>'15252c43-79fa-4ef7-91c0-4366126247ea',
       ],
+    ]);
+
+    $this->sub=\Yii::createObject([
+      'class'=>\kepco\Redis::className(),
+      'hostname'=>$this->module->redis_server,
     ]);
   }
 

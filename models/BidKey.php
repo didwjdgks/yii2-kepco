@@ -1,7 +1,7 @@
 <?php
 namespace kepco\models;
 
-class BidKey extends \yii\db\ActiveRecord
+class BidKey extends \i2\models\BidKey
 {
   public static function tableName(){
     return 'bid_key';

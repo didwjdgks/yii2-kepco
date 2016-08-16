@@ -23,17 +23,20 @@ class WatchController extends \yii\console\Controller
       $bid->watch(function($row){
         $this->stdout2("한전입찰> %g{$row['no']}%n %y{$row['revision']}%n {$row['name']}");
         $notinum=$row['no'];
-        if($row['purchaseType']=='ConstructionService'){
-					if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-						$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-					}
-				}else if($row['purchaseType']=='Product'){
-					if(preg_match('/(\d{4})(\d{6})/',$notinum,$m)){
-						$old_notinum=$m[1].'-'.$m[2];
-					}
-				}
         
-				if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail') return;
+				if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
+					$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
+				}
+				
+				if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail'
+					|| ($row['progressState']=='Final' && $row['resultState']=='Success')
+					|| ($row['progressState']=='Final' && $row['resultState']=='Fail')
+					|| ($row['progressState']=='Final' && $row['resultState']=='FailPrivate')
+					|| ($row['progressState']=='Final' && $row['resultState']=='FailReRfx')
+					|| ($row['progressState']=='Final' && $row['resultState']=='NotDetermined')
+					) return;
+
+				if(strpos($row['name'],'[모의입찰]')!==false)	return;
 
 				$bidkey=BidKey::find()->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
           ->andWhere(['whereis'=>'03'])
@@ -64,15 +67,11 @@ class WatchController extends \yii\console\Controller
       $bid->watch(function($row){
         $this->stdout2("한전낙찰> %g{$row['no']}%n %y{$row['name']}%n %r{$row['id']}'");
         $notinum=$row['no'];
-        if($row['purchaseType']=='ConstructionService'){
-					if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-						$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-					}
-				}else if($row['purchaseType']=='Product'){
-					if(preg_match('/(\d{4})(\d{6})/',$notinum,$m)){
-						$old_notinum=$m[1].'-'.$m[2];
-					}
+        
+				if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
+					$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
 				}
+				
         $bidkey=BidKey::find() ->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
           ->andWhere(['whereis'=>'03'])
           ->orderBy('bidid desc')
