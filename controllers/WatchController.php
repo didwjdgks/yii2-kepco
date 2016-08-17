@@ -17,79 +17,84 @@ class WatchController extends \yii\console\Controller
     $this->stdout(Console::renderColoredString($string));
   }
 
+  public function memory_usage(){
+    $this->stdout(sprintf("[%s] Peak memory usage: %s Mb\n",
+      date('Y-m-d H:i:s'),
+      (memory_get_peak_usage(true)/1024/1024))
+    ,Console::FG_GREY);
+  }
+
+  public function actions(){
+    return [
+      'suc'=>'kepco\actions\SucWatchAction',
+    ];
+  }
+
   public function actionBid(){
     while(true){
-      $bid=new BidWatcher;
-      $bid->watch(function($row){
-        $this->stdout2("한전입찰> %g{$row['no']}%n %y{$row['revision']}%n {$row['name']}");
-        $notinum=$row['no'];
-        
-				if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-					$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-				}
-				
-				if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail'
-					|| ($row['progressState']=='Final' && $row['resultState']=='Success')
-					|| ($row['progressState']=='Final' && $row['resultState']=='Fail')
-					|| ($row['progressState']=='Final' && $row['resultState']=='FailPrivate')
-					|| ($row['progressState']=='Final' && $row['resultState']=='FailReRfx')
-					|| ($row['progressState']=='Final' && $row['resultState']=='NotDetermined')
-					) return;
+      try{
+        $cookie=$this->module->redis_get('kepco.cookie');
+        $token=$this->module->redis_get('kepco.token');
+        $bid=new BidWatcher([
+          'cookie'=>$cookie,
+          'token'=>$token,
+        ]);
+        $bid->on('kepco-login',function($event){
+            $this->stdout2(" > %g로그인을 요청합니다.%n\n");
+            $tihs->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+              142, //송치문
+              149, //양정한
+              150, //이광용
+            ]);
+        });
 
-				if(strpos($row['name'],'[모의입찰]')!==false)	return;
+        $bid->watch(function($row){
+          $this->stdout2("한전입찰> [watcher] {$row['no']} {$row['revision']} {$row['name']}\n");
+          $this->stdout2(" > noticeType:{$row['noticeType']},resultState:{$row['resultState']},progressState:{$row['progressState']}\n");
+          $notinum=$row['no'];
+          
+          if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
+            $old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
+          }
+          
+          if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail'
+            || ($row['progressState']=='Final' && $row['resultState']=='Success')
+            || ($row['progressState']=='Final' && $row['resultState']=='Fail')
+            || ($row['progressState']=='Final' && $row['resultState']=='FailPrivate')
+            || ($row['progressState']=='Final' && $row['resultState']=='FailReRfx')
+            || ($row['progressState']=='Final' && $row['resultState']=='NotDetermined')
+          ){
+            return;
+          }
 
-				$bidkey=BidKey::find()->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
-          ->andWhere(['whereis'=>'03'])
-          ->orderBy('bidid desc')
-          ->limit(1)->one();
-        if($bidkey===null){
-          $this->stdout2(" %yNEW%n\n");
-          $client=new \GearmanClient;
-          $client->addServers('127.0.0.1');
-          $client->doBackground('kepco_work_bid',Json::encode([
-            'id'=>$row['id'],
-            'notinum'=>$row['no'],
-            'revision'=>$row['revision'],
-            'constnm'=>$row['name'],
-          ]));
+          $row['notinum']=$row['no'];
+          $row['constnm']=$row['name'];
+
+          $notinum=$notinum.'-'.$row['revision'];
+          $bidkey=BidKey::find()->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
+            ->andWhere(['whereis'=>'03'])
+            ->orderBy('bidid desc')
+            ->limit(1)->one();
+          if($bidkey!==null){
+            if($row['resultState']==='Cancel' and $bidkey->bidproc!=='C'){
+              $this->stdout2("%g > 취소공고 입력을 요청합니다.%n\n");
+              $this->module->gman_do('kepco_work_bid',$row);
+            }
+            return;
+          }
+
+          $this->stdout2("%g > 신규공고 입력을 요청합니다.%n\n");
+          $this->module->gman_do('kepco_work_bid',$row);
           sleep(1);
-          return;
-        }
+        }); // end watch()
+      }
+      catch(\Exception $e){
+        $this->stdout("$e\n",Console::FG_RED);
+        \Yii::error($e,'kepco');
+      }
 
-        $this->stdout2(" {$bidkey->org_i}\n");
-      });
-      sleep(1);
-    }
-  }
-  public function actionSuc(){
-  while(true){
-      $bid =new SucWatcher;
-      $bid->watch(function($row){
-        $this->stdout2("한전낙찰> %g{$row['no']}%n %y{$row['name']}%n %r{$row['id']}'");
-        $notinum=$row['no'];
-        
-				if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-					$old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-				}
-				
-        $bidkey=BidKey::find() ->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
-          ->andWhere(['whereis'=>'03'])
-          ->orderBy('bidid desc')
-          ->limit(1)->one();
-       if($bidkey===null){
-        $this->stdout2(" %yNEW%n\n");
-        $client=new \GearmanClient;
-        $client->addServers('127.0.0.1');
-        $client->doBackground('kepco_work_suc',Json::encode([
-          'notinum'=>$row['no'],
-          'constnm'=>$row['name'],        
-          'id'=>$row['id'],
-          ]));
-          sleep(1);
-          return;
-        }
-        $tihs->stdout2(" {$bidkey->org_i}\n");
-      });
+      $this->module->db->close();
+      $this->memory_usage();
       sleep(1);
     }
   }

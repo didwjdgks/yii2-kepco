@@ -27,12 +27,22 @@ class SucWatchAction extends \yii\base\Action
   }
 
   public function run(){
-    $suc=new SucWatcher;
-    $suc->on('kepco-login',function($event){
-      $this->stdout(" > %g로그인을 요청합니다.%n\n");
-    });
     while(true){
       try{
+        $cookie=$this->module->redis_get('kepco.cookie');
+        $token=$this->module->redis_get('kepco.token');
+        $suc=new SucWatcher([
+          'cookie'=>$cookie,
+          'token'=>$token,
+        ]);
+        $suc->on('kepco-login',function($event){
+          $this->stdout(" > %g로그인을 요청합니다.%n\n");
+          $tihs->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+            142, //송치문
+            149, //양정한
+            150, //이광용
+          ]);
+        });
         $suc->watch(function($row){
           $this->stdout("한전낙찰> %g{$row['no']}%n {$row['name']}");
           $notinum=$row['no'];
@@ -55,7 +65,7 @@ class SucWatchAction extends \yii\base\Action
           }
 
           $this->stdout(" %yNEW%n\n");
-          sleep(3);
+          sleep(1);
         }); // end watch()
       }
       catch(\Exception $e){

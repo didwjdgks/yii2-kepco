@@ -43,20 +43,6 @@ class BidWorker extends Worker
         'tid'=>198,
         'type'=>"rpc",
       ],
-      [
-        'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
-        'method'=>'getAttachments',
-        'tid'=>82,
-        'type'=>'rpc',
-        'data'=>[
-          [
-            'groupId'=>$this->id,
-            'limit'=>100,
-            'page'=>1,
-            'start'=>0,
-          ],
-         ],
-      ],
     ];
     $res=$this->post('/router',['json'=>$post_data]);
     foreach($res as $row){
@@ -64,9 +50,32 @@ class BidWorker extends Worker
         case 'findBidBasicInfo': $basicInfo=$row['result']; break;
         case 'getFileItemList': $fileList=$row['result']; break;
         case 'findLicenseCodeData': $licenseInfo=$row['result']; break;
-        case 'getAttachments' : $fileList2=$row['result']; break;
       }    
-		}
+    }
+
+    $res=$this->post('/router',[
+      'json'=>[
+        [
+          'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
+          'method'=>'getAttachments',
+          'tid'=>82,
+          'type'=>'rpc',
+          'data'=>[
+            [
+              'groupId'=>$basicInfo['attachFileGroupId'],
+              'limit'=>100,
+              'page'=>1,
+              'start'=>0,
+            ],
+          ],
+        ],
+      ],
+    ]);
+    foreach($res as $row){
+      switch($row['method']){
+      case 'getAttachments': $fileList2=$row['result']; break;
+      }
+    }
 		
 		$bidtype = $basicInfo['itemType'];
 		
@@ -106,8 +115,12 @@ class BidWorker extends Worker
 
 		//constnm
 		$data['constnm'] = $basicInfo['name'];
-	
 		
+		if(strpos($data['constnm'],'용역')!==false){
+			$data['bidtype']	= 'ser';
+			$data['bidview']	= 'ser';
+		}
+
 		$company = array(
 			"COM01"		=>	"한국전력공사",
 			"COM02"		=>	"한국서부발전(주)",
@@ -128,68 +141,6 @@ class BidWorker extends Worker
 		$data['org'] = $basicInfo['representativeDepartmentName'];
 
 		$data['org_i'] = $company[$basicInfo['companyId']].' '.$basicInfo['representativeDepartmentName'];
-		
-		
-		//�����������
-	/*	if($basicInfo['noticeType']=='New' || $basicInfo['noticeType']=='OnceMore'){
-			$data['bidproc'] = 'B';
-			//bidid ����						
-			$now = new DateTime();
-			$hbidid = substr($now->format('YmdHis'),2);						
-			$tbidid = str_pad(mt_rand(0,999),3,'0',STR_PAD_LEFT); // str_pad()�� 3�ڸ� �����
-			$data['bidid'] = $hbidid.$tbidid.'-00-00-01';
-			
-		}
-		else if($basicInfo['noticeType']=='Correct'){
-			$data['bidproc'] = 'M';
-			
-			$prev=$bidkey=BidKey::find() ->where("notinum='{$data['notinum']}' or notinum='{$data['old_notinum']}'")
-          ->andWhere(['whereis'=>'03'])
-          ->orderBy('bidid desc')
-          ->limit(1)->one();
-			
-			$old_bidid = $prev->bidid;
-			$data['old_bidid'] = $old_bidid;
-			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
-				$m[2] = (int)$m[2]+1;
-				if($m[2] < 10)	$m[2] = '0'.(string)$m[2];
-				else $m[2] = (string)$m[2];
-				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
-			}
-		}
-		else if($basicInfo['noticeType']=='Cancel'){
-			$data['bidproc'] = 'C';
-			$prev=$bidkey=BidKey::find() ->where("notinum='{$data['notinum']}' or notinum='{$data['old_notinum']}'")
-          ->andWhere(['whereis'=>'03'])
-          ->orderBy('bidid desc')
-          ->limit(1)->one();
-			
-			$old_bidid = $prev->bidid;
-			$data['old_bidid'] = $old_bidid;
-			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
-				$m[2] = (int)$m[2]+1;
-				if($m[2] < 10)	$m[2] = '0'.(string)$m[2];
-				else $m[2] = (string)$m[2];
-				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
-			}
-		// �������� ó��
-		}else if($basicInfo['noticeType']=='ReBidding'){
-			$data['bidproc'] = 'R';
-			$prev=$bidkey=BidKey::find() ->where("notinum='{$data['notinum']}' or notinum='{$data['old_notinum']}'")
-          ->andWhere(['whereis'=>'03'])
-          ->orderBy('bidid desc')
-          ->limit(1)->one();
-			
-			$old_bidid = $prev->bidid;
-			$data['old_bidid'] = $old_bidid;
-			//$old_bidid = '16080111KEP6091-00-00-01';
-			if(preg_match('/([A-Z0-9]{15})-(\d{2})-(\d{2})-(\d{2})/',$old_bidid,$m)){
-				$m[3] = (int)$m[3]+1;
-				if($m[3] < 10)	$m[3] = '0'.(string)$m[3];
-				else $m[3] = (string)$m[3];
-				$data['bidid'] = $m[1].'-'.$m[2].'-'.$m[3].'-'.$m[4];
-			}
-		}*/
 
 		//contract
     if($basicInfo['competitionType']=='Limited')	$data['contract'] = '20';
@@ -215,7 +166,8 @@ class BidWorker extends Worker
 		
 		//convention
 		if($basicInfo['jointSupplyDemandYn'])	$data['convention'] = '2';
-		
+		else	$data['convention'] = '0';
+
 		//prsum
 		$data['presum'] = $basicInfo['presumedPrice'];
 		
@@ -251,47 +203,28 @@ class BidWorker extends Worker
     if($data['bidtype'] == 'pur'){
       
       $data['bid_html'] = "계약조건 공시장소 : <br>".$basicInfo['mailBidDistribution']."<br><br>"."계약착수일 및 완료일 : <br>".$basicInfo['contractBeginEndDate']."<br><br>"."입찰시 제출서류 : <br>".$basicInfo['bidAttendDocument']. "<br><br>"."입찰참가자격 : <br>".$basicInfo['bidAttendRestrict']."<br><br>"."입찰보증금귀속 : <br>".$basicInfo['bidBondBelong']."<br><br>"."입찰무효사항: <br>".$basicInfo['bidNullification']."<br><br>"."입찰참가신청서류 : <br>". $basicInfo['bidAttendRequestDocument']."<br><br>"."추가정보제공처 : <br>".$basicInfo['moreInformation']."<br><br>"."기타공고사항 : <br>".$basicInfo['etc'];
-
-			if ($fileList2 != NULL){
-				 foreach($fileList2 as $file){
-					 //$file['name'] = iconv('euc-kr','utf-8',$file['name']);
-					 //$file['name'] = iconv('utf-8','euc-kr',$file['name']);
-					 $filename=$file['name'].'#http://srm.kepco.net/DownloadAttachment.do?id='.$file['id'];
-					 $files[]=$filename;
-					}
-			 $att_lnk1 =join('|',$files);
-			}
-
-			$data['attchd_lnk'] = $att_lnk1;
-
 		}else{
-			if ($fileList != NULL){
-				 foreach($fileList as $file){
-					 //$file['name'] = iconv('euc-kr','utf-8',$file['name']);
-					 //$file['name'] = iconv('utf-8','euc-kr',$file['name']);
-					 $filename=$file['name'].'#http://srm.kepco.net/DownloadAttachment.do?id='.$file['id'];
-					 $files[]=$filename;
-					}
-			 $att_lnk1 =join('|',$files);
-			}
-
-			$data['attchd_lnk'] = $att_lnk1;
 			//bidcomment
 			$data['bidcomment'] = $basicInfo['etc']; // or $data['bidcomment']=$basicInfo['bidAttendRestrict'];
-		}
+    }
+
+    //자동첨부파일
+    if(is_array($fileList)){
+      foreach($fileList as $file){
+        $filename=$file['name'].'#http://srm.kepco.net/printDownloadAttachment.do?id='.$file['id'];
+        $files[]=$filename;
+      }
+    }
+    //수동첨부파일
+    if(is_array($fileList2)){
+      foreach($fileList2 as $file){
+        $filename=$file['name'].'#http://srm.kepco.net/downloadAttachment.do?id='.$file['id'];
+        $files[]=$filename;
+      }
+    }
+    $data['attchd_lnk']=join('|',$files);
 
     return $data;
   }
-
-/*	public function createBidid($str) {
-		$now = new DateTime();
-		$fbidid = $now->format('YmdH');
-		$sbidid = $str;
-		$tbidid = rand(0,9999);
-
-		$bidid = $fbidid.$sbidid.$tbidid;
-		
-		return $bidid;
-	}
-*/
 }
+

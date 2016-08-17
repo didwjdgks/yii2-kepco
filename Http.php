@@ -2,6 +2,7 @@
 namespace kepco;
 
 use yii\helpers\Json;
+use yii\helpers\ArrayHelper;
 
 class Http extends \yii\base\Component
 {
@@ -10,19 +11,23 @@ class Http extends \yii\base\Component
   public $sub;
   public $module;
 
+  public $cookie;
+  public $token;
+
   public function init(){
     parent::init();
 
     $this->module=\kepco\Module::getInstance();
 
     $this->client=new \GuzzleHttp\Client([
-      //'base_uri'=>'http://203.248.44.161/mdi.do',
 			'base_uri'=>'http://srm.kepco.net/',
       'cookies'=>true,
+      //'debug'=>true,
+      'allow_redirects'=>false,
       'headers'=>[
         'User-Agent'=>'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
-        'Cookie'=>'WMONID=MjsXQm-vWwH; SRM_ID=j-GS3zuv5QwevGapawbknVdmnJUlBiRRoustWbAlLAC-PTxd8eJz!1386704706!-1013934162',
-        'X-CSRF-TOKEN'=>'15252c43-79fa-4ef7-91c0-4366126247ea',
+        'Cookie'=>$this->cookie,
+        'X-CSRF-TOKEN'=>$this->token,
       ],
     ]);
 

@@ -44,9 +44,9 @@ class SucWatcher extends Watcher
         }
         $rows=$res[0]['result']['records'];
         foreach($rows as $row){
-         $callback($row);
-         
+          $callback($row);
         }
+        $this->sub->publish('kepco-login','ok');
         sleep(1);
       }
     }
@@ -54,9 +54,6 @@ class SucWatcher extends Watcher
       $this->trigger('kepco-login',new \yii\base\Event());
 
       $this->sub->subscribe(['kepco-login'],function($redis,$chan,$msg){
-        $data=Json::decode($msg);
-        $this->cookie=$data['cookie'];
-        $this->token=$data['token'];
         $this->sub->close();
       });
       throw $e;

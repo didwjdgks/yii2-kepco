@@ -36,5 +36,15 @@ class Redis extends \yii\base\Component
     $this->open();
     $this->phpRedis->subscribe($channel,$callback);
   }
+
+  public function get($key){
+    $this->open();
+    return $this->phpRedis->get($key);
+  }
+
+  public function set($key,$value){
+    $this->open();
+    $this->phpRedis->set($key,$value);
+  }
 }
 
