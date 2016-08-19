@@ -41,7 +41,7 @@ class WatchController extends \yii\console\Controller
         ]);
         $bid->on('kepco-login',function($event){
             $this->stdout2(" > %g로그인을 요청합니다.%n\n");
-            $tihs->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+            $this->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
               142, //송치문
               149, //양정한
               150, //이광용
@@ -49,13 +49,8 @@ class WatchController extends \yii\console\Controller
         });
 
         $bid->watch(function($row){
-          $this->stdout2("한전입찰> [watcher] {$row['no']} {$row['revision']} {$row['name']}\n");
-          $this->stdout2(" > noticeType:{$row['noticeType']},resultState:{$row['resultState']},progressState:{$row['progressState']}\n");
+          $this->stdout2("한전입찰> %g[watcher]%n {$row['no']} {$row['revision']} {$row['name']}");
           $notinum=$row['no'];
-          
-          if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-            $old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-          }
           
           if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail'
             || ($row['progressState']=='Final' && $row['resultState']=='Success')
@@ -64,26 +59,55 @@ class WatchController extends \yii\console\Controller
             || ($row['progressState']=='Final' && $row['resultState']=='FailReRfx')
             || ($row['progressState']=='Final' && $row['resultState']=='NotDetermined')
           ){
+            $this->stdout("\n");
             return;
           }
 
-          $row['notinum']=$row['no'];
-          $row['constnm']=$row['name'];
+          if(preg_match('/^\d{10}$/',$row['no'],$m)){
+            $old_notinum=substr($row['no'],0,4).'-'.substr($row['no'],4);
+          }else{
+            $old_notinum=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
+          }
 
-          $notinum=$notinum.'-'.$row['revision'];
-          $bidkey=BidKey::find()->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
+          $bidkey=BidKey::find()->where("notinum like '{$notinum}%' or notinum like '{$old_notinum}%'")
             ->andWhere(['whereis'=>'03'])
             ->orderBy('bidid desc')
             ->limit(1)->one();
+
           if($bidkey!==null){
-            if($row['resultState']==='Cancel' and $bidkey->bidproc!=='C'){
-              $this->stdout2("%g > 취소공고 입력을 요청합니다.%n\n");
+            if(($row['resultState']==='Cancel' or $row['noticeType']==='Cancel') and $bidkey->bidproc!=='C'){
+              $this->stdout2("\n%g > 취소공고 입력을 요청합니다.%n\n");
               $this->module->gman_do('kepco_work_bid',$row);
+              return;
             }
+            if(($row['revision']>1 or $row['noticeType']==='Correct') and $row['resultState']!=='Cancel'){
+              $p_notinum=str_replace('-','',$bidkey->notinum);
+              if(strlen($p_notinum)===10) $p_revision=1;
+              else $p_revision=substr($p_notinum,10);
+              if($p_revision<$row['revision']){
+                $this->stdout2(" %yMODIFY%n\n");
+                $this->module->gman_do('kepco_work_bid',$row);
+                return;
+              }
+            }
+            $this->stdout("\n");
+
+            //입찰마감비교
+            $endDateTime=strtotime($row['endDateTime']);
+            $closedt=strtotime($bidkey->closedt);
+            if($closedt!=$endDateTime){
+              $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
+            }
+
             return;
           }
 
-          $this->stdout2("%g > 신규공고 입력을 요청합니다.%n\n");
+          if($row['resultState']==='Cancel' or $row['noticeType']==='Cancel'){
+            $this->stdout2("\n%4 > 취소 전 공고가 없습니다.%n\n");
+            return;
+          }
+
+          $this->stdout2(" %yNEW%n\n");
           $this->module->gman_do('kepco_work_bid',$row);
           sleep(1);
         }); // end watch()

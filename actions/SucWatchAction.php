@@ -37,34 +37,37 @@ class SucWatchAction extends \yii\base\Action
         ]);
         $suc->on('kepco-login',function($event){
           $this->stdout(" > %g로그인을 요청합니다.%n\n");
-          $tihs->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+          $this->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
             142, //송치문
             149, //양정한
             150, //이광용
           ]);
         });
-        $suc->watch(function($row){
-          $this->stdout("한전낙찰> %g{$row['no']}%n {$row['name']}");
+        $suc->watch(function($row){          
+					$this->stdout("한전낙찰> %g[watcher]%n {$row['no']} {$row['revision']} {$row['name']}");
           $notinum=$row['no'];
-          if($row['purchaseType']=='ConstructionService'){
-            if(preg_match('/([A-Z0-9]{3})(\d{2})(\d{5})/',$notinum,$m)){
-              $old_notinum=$m[1].'-'.$m[2].'-'.$m[3];
-            }
-          }else if($row['purchaseType']=='Product'){
-            if(preg_match('/(\d{4})(\d{6})/',$notinum,$m)){
-              $old_notinum=$m[1].'-'.$m[2];
-            }
+
+          if(preg_match('/^\d{10}$/',$row['no'],$m)){
+            $old_notinum=substr($row['no'],0,4).'-'.substr($row['no'],4);
+          }else{
+            $old_notinum=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
           }
-          $bidkey=BidKey::find() ->where("notinum='{$notinum}' or notinum='{$old_notinum}'")
+          
+					$notinum = $row['no'].'-'.$row['revision'];
+          $bidkey=BidKey::find() ->where("notinum = '{$notinum}' or notinum='{$old_notinum}'")						
             ->andWhere(['whereis'=>'03'])
+						->andWhere("bidproc NOT IN ('S','F')")
             ->orderBy('bidid desc')
             ->limit(1)->one();
-          if($bidkey!==null){
+
+          if($bidkey===null){
             $this->stdout("\n");
             return;
           }
 
           $this->stdout(" %yNEW%n\n");
+          
+          $this->module->gman_do('kepco_work_suc',$row);
           sleep(1);
         }); // end watch()
       }

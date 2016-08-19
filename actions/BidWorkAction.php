@@ -6,6 +6,7 @@ use yii\helpers\Json;
 
 use kepco\models\BidKey;
 use kepco\workers\BidWorker;
+use kepco\workers\BidWorkerPur;
 
 class BidWorkAction extends \yii\base\Action
 {
@@ -35,39 +36,54 @@ class BidWorkAction extends \yii\base\Action
     $w->addFunction('kepco_work_bid',function($job){
       try{
         $workload=Json::decode($job->workload());
-        $this->stdout("한전입찰> [worker] {$workload['notinum']} {$workload['revision']} {$workload['constnm']} ({$workload['id']})\n");
+        $this->stdout("한전입찰> [worker] {$workload['no']} {$workload['revision']} {$workload['name']} ({$workload['noticeType']})\n");
 
         $cookie=$this->module->redis_get('kepco.cookie');
         $token=$this->module->redis_get('kepco.token');
-        $bid=new BidWorker([
-          'id'=>$workload['id'],
-          'cookie'=>$cookie,
-          'token'=>$token,
-        ]);
-        $data=$bid->run();
 
-        switch($workload['noticeType']){
-        case 'Cancel':
-          $this->bid_c($data);
-          break;
-        case 'New':
-        case 'OnceMore':
-        case 'Correct':
-          if($workload['revision']>1){
-            $this->bid_m($data);
-          }
-          else if($workload['resultState']=='Cancel'){
-            $this->bid_c($data);
-          }
-          else{
-            $this->bid_b($data);
-          }
-          break;
-        default:
-          $this->stdout("%r > unknown noticeType : {$workload['noticeType']}%n\n");
+        if($workload['purchaseType']==='Product'){
+          $bid=new BidWorkerPur([
+            'id'=>$workload['id'],
+            'cookie'=>$cookie,
+            'token'=>$token,
+          ]);
+          $data=$bid->run();
+        }else{
+          $bid=new BidWorker([
+            'id'=>$workload['id'],
+            'cookie'=>$cookie,
+            'token'=>$token,
+          ]);
+          $data=$bid->run();
         }
 
-        $this->module->publish('kepco-login','ok');
+        if($data!==null){
+          switch($workload['noticeType']){
+          case 'Cancel':
+            $this->bid_c($data);
+            break;
+          case 'New':
+          case 'OnceMore':
+          case 'Correct':
+            if($workload['revision']>1){
+              $this->bid_m($data);
+            }
+            else if($workload['resultState']=='Cancel'){
+              $this->bid_c($data);
+            }
+            else{
+              $this->bid_b($data);
+            }
+            break;
+          case 'ReBidding':
+            $this->bid_r($data);
+            break;
+          default:
+            $this->stdout("%r > unknown noticeType : {$workload['noticeType']}%n\n");
+          }
+
+          $this->module->publish('kepco-login','ok');
+        }
       }
       catch(\Exception $e){
         $this->stdout("%r$e%n\n");
@@ -81,11 +97,48 @@ class BidWorkAction extends \yii\base\Action
     while($w->work());
   }
 
-  public function bid_c($data){
+  public function bid_r($data){
     list($noti,$revision)=explode('-',$data['notinum']);
+    if(preg_match('/^\d{10}$/',$noti,$m)){
+      $old_noti=substr($noti,0,4).'-'.substr($noti,4);
+    }else{
+      $old_noti=substr($noti,0,3).'-'.substr($noti,3,2).'-'.substr($noti,5,5);
+    }
     $query=BidKey::find()->where([
       'whereis'=>'03',
-    ])->andWhere("notinum like '{$noti}%'");
+    ])->andWhere("notinum like '{$noti}%' or notinum like '{$old_noti}%'");
+    $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
+    if($bidkey!==null){
+      list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
+      if($data['bidRevision']>intval($c)){
+        $b=sprintf('%02s',intval($b)+1);
+        $c=sprintf('%02s',intval($data['bidRevision']));
+        $data['bidid']="$a-$b-$c-$d";
+        $data['bidproc']='M';
+        $data['constnm']=$data['constnm'].'//재투찰';
+        $this->stdout("%g > do {$this->i2_func} {$data['bidid']} {$data['bidproc']}%n\n");
+        $this->module->gman_do($this->i2_func,Json::encode($data));
+
+        if(!empty($data['attchd_lnk'])){
+          $this->module->gman_doBack('kepco_file_download',[
+            'bidid'=>$data['bidid'],
+            'attchd_lnk'=>$data['attchd_lnk'],
+          ]);
+        }
+      }
+    }
+  }
+
+  public function bid_c($data){
+    list($noti,$revision)=explode('-',$data['notinum']);
+    if(preg_match('/^\d{10}$/',$noti,$m)){
+      $old_noti=substr($noti,0,4).'-'.substr($noti,4);
+    }else{
+      $old_noti=substr($noti,0,3).'-'.substr($noti,3,2).'-'.substr($noti,5,5);
+    }
+    $query=BidKey::find()->where([
+      'whereis'=>'03',
+    ])->andWhere("notinum like '{$noti}%' or notinum like '{$old_noti}%'");
     $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
     if($bidkey!==null and $bidkey->bidproc!='C'){
       list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
@@ -99,9 +152,14 @@ class BidWorkAction extends \yii\base\Action
 
   public function bid_m($data){
     list($noti,$revision)=explode('-',$data['notinum']);
+    if(preg_match('/^\d{10}$/',$noti,$m)){
+      $old_noti=substr($noti,0,4).'-'.substr($noti,4);
+    }else{
+      $old_noti=substr($noti,0,3).'-'.substr($noti,3,2).'-'.substr($noti,5,5);
+    }
     $query=BidKey::find()->where([
       'whereis'=>'03',
-    ])->andWhere("notinum like '{$noti}%'");
+    ])->andWhere("notinum like '{$noti}%' or notinum like '{$old_noti}%'");
     $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
     if($bidkey!==null){
       list($noti_p,$revision_p)=explode('-',$bidkey->notinum);
@@ -124,10 +182,15 @@ class BidWorkAction extends \yii\base\Action
   }
 
   public function bid_b($data){
+    list($noti,$revision)=explode('-',$data['notinum']);
+    if(preg_match('/^\d{10}$/',$noti,$m)){
+      $old_noti=substr($noti,0,4).'-'.substr($noti,4);
+    }else{
+      $old_noti=substr($noti,0,3).'-'.substr($noti,3,2).'-'.substr($noti,5,5);
+    }
     $query=BidKey::find()->where([
       'whereis'=>'03',
-      'notinum'=>$data['notinum'],
-    ]);
+    ])->andWhere("notinum like '{$noti}%' or notinum like '{$old_noti}%'");
     $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
     if($bidkey===null){
       $data['bidid']=sprintf('%s%s-00-00-01',date('ymdHis'),str_pad(mt_rand(0,999),3,'0',STR_PAD_LEFT));

@@ -6,7 +6,7 @@ use DateTime;
 use kepco\models\BidKey;
 use kepco\components\func;
 
-class BidWorker extends Worker
+class BidWorkerPur extends Worker
 {
   public $id;
 
@@ -19,6 +19,21 @@ class BidWorker extends Worker
         'tid'=>39,
         'type'=>"rpc",
       ],
+      [ 'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',
+        'method'=>'findBidChangeTimeDetailList',
+        'tid'=>84,
+        'type'=>'rpc',
+        'data'=>[
+          [ 'bidFileType'=>'Bid',
+            'bidId'=>$this->id,
+            'fileGroupId'=>'ProductBidFileGroup',
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
+            'type'=>'Bid',
+          ],
+        ],
+      ],
       [
         'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',
         'method'=>'getFileItemList',
@@ -28,20 +43,13 @@ class BidWorker extends Worker
           [
             'bidFileType'=>'Bid',
             'bidId'=>$this->id,
-            'fileGroupId'=>'ConstructionBidFileGroup',
+            'fileGroupId'=>'ProductBidFileGroup',
             'limit'=>100,
             'page'=>1,
             'start'=>0,
             'type'=>'Bid',
           ],
         ],
-      ],
-			[
-        'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',
-        'data'=>[$this->id],
-        'method'=>"findLicenseCodeData",
-        'tid'=>198,
-        'type'=>"rpc",
       ],
       //품목정보요청
       [ 'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',
@@ -65,7 +73,9 @@ class BidWorker extends Worker
       switch($row['method']){
         case 'findBidBasicInfo': $basicInfo=$row['result']; break;
         case 'getFileItemList': $fileList=$row['result']; break;
-        case 'findLicenseCodeData': $licenseInfo=$row['result']; break;
+        case 'findBidChangeTimeDetailList':
+          $findBidChangeTimeDetailList=$row['result'];
+          break;
         case 'findBidItems':
           $bidItems=$row['result'];
           break;
@@ -76,27 +86,58 @@ class BidWorker extends Worker
       return null;
     }
 
-    $res=$this->post('/router',[
-      'json'=>[
-        [
-          'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
-          'method'=>'getAttachments',
-          'tid'=>82,
-          'type'=>'rpc',
-          'data'=>[
-            [
-              'groupId'=>$basicInfo['attachFileGroupId'],
-              'limit'=>100,
-              'page'=>1,
-              'start'=>0,
-            ],
+    $json=[
+      [ 'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
+        'method'=>'getAttachments',
+        'tid'=>159,
+        'type'=>'rpc',
+        'data'=>[
+          [
+            'groupId'=>$basicInfo['purchaseSpecAttachFileGroupId'],
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
           ],
         ],
       ],
-    ]);
+      [ 'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
+        'method'=>'getAttachments',
+        'tid'=>160,
+        'type'=>'rpc',
+        'data'=>[
+          [
+            'groupId'=>$basicInfo['specialConditionAttachFileGrpId'],
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
+          ],
+        ],
+      ],
+      [ 'action'=>'smartsuit.ui.etnajs.cmmn.CommonController',
+        'method'=>'getAttachments',
+        'tid'=>161,
+        'type'=>'rpc',
+        'data'=>[
+          [
+            'groupId'=>$basicInfo['etcAttachFileGroupId'],
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
+          ],
+        ],
+      ],
+    ];
+    $res=$this->post('/router',['json'=>$json]);
+    $fileList2=[];
     foreach($res as $row){
       switch($row['method']){
-      case 'getAttachments': $fileList2=$row['result']; break;
+      case 'getAttachments':
+        if(is_array($row['result'])){
+          foreach($row['result'] as $val){
+            $fileList2[]=$val;
+          }
+        }
+        break;
       }
     }
 		
@@ -116,10 +157,7 @@ class BidWorker extends Worker
 			$data['bidview']	= 'pur';						
 		}
 
-    $data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
-
-    //재입찰번호
-    $data['bidRevision']=$basicInfo['bidRevision'];
+		$data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
 		
 		//chasu
 		$data['orgcode_y'] = $basicInfo['revision'];
@@ -168,10 +206,6 @@ class BidWorker extends Worker
 		else if($basicInfo['bidType']=='LimitedLowestPrice')	$data['succls'] = '03';
 		else	$data['succls'] = '00';
 		
-		//license
-		$code = $data['bidtype'].'code';
-		$data[$code] = $licenseInfo['licenseQualificationCode'];
-
 		//yegatype
 		$data['yegatype'] = '25';
 		
@@ -208,9 +242,23 @@ class BidWorker extends Worker
 		//state
 		$data['state'] = 'N';
 
-    $files=[];
-		$data['bidcomment'] = $basicInfo['etc']; // or $data['bidcomment']=$basicInfo['bidAttendRestrict'];
+    $data['bid_html'] = "계약조건 공시장소 : <br>".$basicInfo['mailBidDistribution']."<br><br>"."계약착수일 및 완료일 : <br>".$basicInfo['contractBeginEndDate']."<br><br>"."입찰시 제출서류 : <br>".$basicInfo['bidAttendDocument']. "<br><br>"."입찰참가자격 : <br>".$basicInfo['bidAttendRestrict']."<br><br>"."입찰보증금귀속 : <br>".$basicInfo['bidBondBelong']."<br><br>"."입찰무효사항: <br>".$basicInfo['bidNullification']."<br><br>"."입찰참가신청서류 : <br>". $basicInfo['bidAttendRequestDocument']."<br><br>"."추가정보제공처 : <br>".$basicInfo['moreInformation']."<br><br>"."기타공고사항 : <br>".$basicInfo['etc'];
 
+    //품목정보
+    if(is_array($bidItems)){
+      foreach($bidItems as $i=>$item){
+        $data['goods'][]=[
+          'seq'=>$i+1,
+          'gcode'=>$item['itemCode'],
+          'gname'=>$item['itemName'],
+          'standard'=>$item['itemSpec'],
+          'unit'=>$item['itemUnit'],
+          'cnt'=>$item['quantity'],
+        ];
+      }
+    }
+
+    $files=[];
     //자동첨부파일
     if(is_array($fileList)){
       foreach($fileList as $file){

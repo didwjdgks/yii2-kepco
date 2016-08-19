@@ -12,7 +12,7 @@ class Module extends \yii\base\Module
   public $redis_server;
 
   protected $gman_client;
-  protected $gman_talk;
+  protected $talk_client;
   protected $redis;
 
   public function init(){
@@ -40,15 +40,15 @@ class Module extends \yii\base\Module
   }
 
   public function gman_talk($msg,$recv=[]){
-    if($this->gman_talk===null){
-      $this->gman_talk=new \GearmanClient;
-      $this->gman_talk->addServers('115.68.48.242');
+    if($this->talk_client===null){
+      $this->talk_client=new \GearmanClient;
+      $this->talk_client->addServers('115.68.48.242');
     }
     if(empty($recv)) $recv[]=149;
     $msg="==한국전력공사==\n".$msg;
     foreach($recv as $id){
-      $this->gman_talk->doBackground('send_chat_message_from_admin',Json::encode([
-        'recv'=>$id,
+      $this->talk_client->doBackground('send_chat_message_from_admin',Json::encode([
+        'recv_id'=>$id,
         'message'=>$msg,
       ]));
     }
