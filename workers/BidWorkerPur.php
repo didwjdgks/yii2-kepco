@@ -157,7 +157,8 @@ class BidWorkerPur extends Worker
 			$data['bidview']	= 'pur';						
 		}
 
-		$data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
+    $data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
+    $data['bidRevision']=$basicInfo['bidRevision'];
 		
 		//chasu
 		$data['orgcode_y'] = $basicInfo['revision'];

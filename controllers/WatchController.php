@@ -35,6 +35,55 @@ class WatchController extends \yii\console\Controller
       try{
         $cookie=$this->module->redis_get('kepco.cookie');
         $token=$this->module->redis_get('kepco.token');
+
+        $delay=new \kepco\watchers\DelayWatcher([
+          'cookie'=>$cookie,
+          'token'=>$token,
+        ]);
+        $delay->on('kepco-login',function($event){
+            $this->stdout2(" > %g로그인을 요청합니다.%n\n");
+            $this->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+              142, //송치문
+              149, //양정한
+              150, //이광용
+            ]);
+        });
+        $delay->watch(function($row){
+          $this->stdout2("%g한전입찰> [delay] {$row['no']} {$row['revision']} {$row['name']}\n");
+
+          if(preg_match('/^\d{10}$/',$row['no'],$m)){
+            $old_notinum=substr($row['no'],0,4).'-'.substr($row['no'],4);
+          }else{
+            $old_notinum=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
+          }
+          $query=BidKey::find()->where([
+            'whereis'=>'03',
+          ])->andWhere("notinum like '{$row['no']}%' or notinum like '{$old_notinum}%'");
+          $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
+          if($bidkey!==null){
+            //입찰마감비교
+            $endDateTime=strtotime($row['endDateTime']);
+            $closedt=strtotime($bidkey->closedt);
+            if($closedt<$endDateTime){
+              $this->stdout2(" 입찰마감 : {$row['endDateTime']} != {$bidkey->closedt}\n");
+              $data['closedt']=date('Y-m-d H:i:s',strtotime($row['endDateTime']));
+              $data['constdt']=date('Y-m-d H:i:s',strtotime('+1 hour',strtotime($data['closedt'])));
+              if($row['bidAttendRequestCloseDateTime']){
+                $data['registdt']=date('Y-m-d H:i:s',strtotime($row['bidAttendRequestCloseDateTime']));
+              }
+              $data['previd']=$bidkey->bidid;
+              $data['bidproc']='L';
+              $data['whereis']=$bidkey->whereis;
+              $data['notinum']=$bidkey->notinum;
+              $data['constnm']=$bidkey->constnm;
+              $data['bidid']=$bidkey->bidid;
+              $this->module->gman_do('i2_auto_bid',Json::encode($data));
+              sleep(1);
+            }
+          }
+        });
+        sleep(5);
+
         $bid=new BidWatcher([
           'cookie'=>$cookie,
           'token'=>$token,
@@ -78,6 +127,7 @@ class WatchController extends \yii\console\Controller
             if(($row['resultState']==='Cancel' or $row['noticeType']==='Cancel') and $bidkey->bidproc!=='C'){
               $this->stdout2("\n%g > 취소공고 입력을 요청합니다.%n\n");
               $this->module->gman_do('kepco_work_bid',$row);
+              sleep(1);
               return;
             }
             if(($row['revision']>1 or $row['noticeType']==='Correct') and $row['resultState']!=='Cancel'){
@@ -87,16 +137,51 @@ class WatchController extends \yii\console\Controller
               if($p_revision<$row['revision']){
                 $this->stdout2(" %yMODIFY%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
+                sleep(1);
                 return;
               }
             }
+            if($row['noticeType']==='ReBidding' and $row['bidRevision']>1){
+              list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
+              if(intval($c)<$row['bidRevision']){
+                $this->stdout2(" %yREBID%n\n");
+                $this->module->gman_do('kepco_work_bid',$row);
+                sleep(1);
+                return;
+              }
+            }
+
+            switch($row['bidTypeCombine']){
+            case '제한적최저가낙찰제':
+            case '제한적최저가':
+            case '적격심사(일반)':
+            case '적격심사(중소기업)':
+            case '적격심사낙찰제':
+              if(empty($bidkey->basic) or $bidkey->basic==0){
+                $this->stdout2(" %yBASIC%n\n");
+                $this->module->gman_do('kepco_work_basic',$row);
+                sleep(1);
+                return;
+              }
+            }
+
             $this->stdout("\n");
 
             //입찰마감비교
             $endDateTime=strtotime($row['endDateTime']);
             $closedt=strtotime($bidkey->closedt);
-            if($closedt!=$endDateTime){
+            if($closedt!=$endDateTime and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
+              $msg=[];
+              $msg[]="입찰마감일을 확인하세요.";
+              $msg[]="공고번호 : {$bidkey->notinum}";
+              $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
+              if($row['purchaseType']!=='Product'){
+                $this->module->gman_talk(join("\n",$msg),[
+                  149, //양정한
+                  155, //박경찬
+                ]);
+              }
             }
 
             return;

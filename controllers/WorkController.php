@@ -40,7 +40,7 @@ class WorkController extends \yii\console\Controller
     $w->addServers($this->module->gman_server);
     $w->addFunction('kepco_work_suc',function($job){
       $workload=Json::decode($job->workload());
-      $this->stdout2("kepco> %g{$workload['notinum']}%n %r{$workload['constnm']}%n\n");      
+      $this->stdout2("kepco> %g{$workload['no']}%n %r{$workload['name']} %g{$workload['id']}%n\n");      
 			$cookie=$this->module->redis_get('kepco.cookie');
 			$token=$this->module->redis_get('kepco.token');
 
@@ -66,6 +66,8 @@ class WorkController extends \yii\console\Controller
       ->limit(1)->one();
 
       if($bidkey===null) return;
+			
+			$this->stdout(" %yNEW%n\n");
 
       $data['notinum'] = $bidkey['notinum'];
       $data['constnm'] = $bidkey['constnm'];

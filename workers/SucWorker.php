@@ -135,7 +135,8 @@ class SucWorker extends Worker
 		for($i=0; $i<=$jsize; $i++){                                                   //초과했을경우
 			$plu_arr[$i]['rank'] = $rank + $i;
 			$tot_arr[$i] = $plu_arr[$i];
-		}
+    }
+   /* 
 		$asize = count($a_arr)-1;                                                      //투찰율없는경우 뒤에 붙혀줌
 		for($i=0; $i<=$asize; $i++){
 			if ($i==0){
@@ -144,21 +145,43 @@ class SucWorker extends Worker
 			}
 			$a_arr[$i]['rank'] = $rank + $i;
 			$tot_arr[$jsize+$i] = $a_arr[$i];
-		}
+    }
+ */
 		$rank = -1;
 		$ksize = count($min_arr)-1;
 		for($i=0; $i<=$ksize; $i++){                                                   //하한율 -랭크
-			if($i==0){
+      if($i==0){
+        $jsize = $jsize+1;
+/*  
 				if($asize < 0){
 					$jsize = $jsize +2;
 				}
 				else{
 					$jsize = $jsize +1;
-				}
-			}
+       	}
+ */  
+      }
+      
 			$min_arr[$i]['rank'] = $rank - $i;
-			$tot_arr[$jsize+$asize+$i] = $min_arr[$i];
-		}
+      //			$tot_arr[$jsize+$asize+$i] = $min_arr[$i];
+      $tot_arr[$jsize+$i] = $min_arr[$i];
+    }
+
+    $asize = count($a_arr)-1;                                                     //투차율없는경우 -로 바꿈
+    for($i=0; $i<=$asize; $i++){
+      if($i==0){
+        $rank = -$ksize-1;
+        if($ksize <0){
+          $jsize = $jsize +2;
+        }
+        else{
+          $jsize = $jsize +1;
+        }
+      }
+      $a_arr[$i]['rank'] = $rank - $i;
+      $tot_arr[$jsize+$ksize+$i] = $a_arr[$i];
+    }
+
  //      print_r($plu_arr);
 //       print_r($a_arr);
 //       print_r($min_arr);

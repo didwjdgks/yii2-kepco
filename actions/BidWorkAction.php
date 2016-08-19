@@ -33,6 +33,45 @@ class BidWorkAction extends \yii\base\Action
   public function run(){
     $w=new \GearmanWorker;
     $w->addServers($this->module->gman_server);
+    //-------------------
+    //기초금액
+    //-------------------
+    $w->addFunction('kepco_work_basic',function($job){
+      $workload=Json::decode($job->workload());
+      $this->stdout("%4한전기초금액> {$workload['no']} {$workload['revision']} {$workload['name']}%n\n");
+      $cookie=$this->module->redis_get('kepco.cookie');
+      $token=$this->module->redis_get('kepco.token');
+      if($workload['purchaseType']==='Product'){
+        $bid=new BidWorkerPur([
+          'id'=>$workload['id'],
+          'cookie'=>$cookie,
+          'token'=>$token,
+        ]);
+      }else{
+        $bid=new BidWorker([
+          'id'=>$workload['id'],
+          'cookie'=>$cookie,
+          'token'=>$token,
+        ]);
+      }
+      $data=$bid->run();
+      if($data!==null and $data['basic']>0){
+        $bidkey=BidKey::find()->where(['whereis'=>'03','notinum'=>$data['notinum']])
+          ->orderBy('bidid desc')->limit(1)->one();
+        if($bidkey!==null){
+          if(empty($bidkey->basic)){
+            $this->stdout(" 한전기초금액 : {$data['basic']}\n");
+            $this->module->gman_do('i2_auto_basic',[
+              'bidid'=>$bidkey->bidid,
+              'basic'=>$data['basic'],
+            ]);
+          }
+        }
+      }
+    });
+    //------------------
+    //입찰공고
+    //-----------------
     $w->addFunction('kepco_work_bid',function($job){
       try{
         $workload=Json::decode($job->workload());
