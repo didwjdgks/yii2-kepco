@@ -45,22 +45,30 @@ class SucWatchAction extends \yii\base\Action
         });
         $suc->watch(function($row){          
 					$this->stdout("한전낙찰> %g[watcher]%n {$row['no']} {$row['revision']} {$row['name']}");
-          $notinum=$row['no'];
-
+          
           if(preg_match('/^\d{10}$/',$row['no'],$m)){
-            $old_notinum=substr($row['no'],0,4).'-'.substr($row['no'],4);
+            $old_noti=substr($row['no'],0,4).'-'.substr($row['no'],4);
           }else{
-            $old_notinum=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
+            $old_noti=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
           }
           
+					$noti=$row['no'];
 					$notinum = $row['no'].'-'.$row['revision'];
-          $bidkey=BidKey::find() ->where("notinum = '{$notinum}' or notinum='{$old_notinum}'")						
+          
+					$bidkey=BidKey::find() ->where("notinum like '{$noti}%'")						
             ->andWhere(['whereis'=>'03'])
-						->andWhere("bidproc NOT IN ('S','F')")
+						//->andWhere("bidproc not in ('S','F')")
             ->orderBy('bidid desc')
             ->limit(1)->one();
 
-          if($bidkey===null){
+					$oldBidkey=BidKey::find() ->where("notinum like '{$old_noti}%'")						
+            ->andWhere(['whereis'=>'03'])
+						//->andWhere("bidproc not in ('S','F')")
+            ->orderBy('bidid desc')
+            ->limit(1)->one();
+
+          if($bidkey===null or ($bidkey!==null and $oldBidkey!==null and (($bidkey->bidproc=='S' or $bidkey->bidproc=='F') and ($oldBidkey->bidproc!='S' and $oldBidkey->bidproc!='F')))
+							or ($bidkey!==null and $oldBidkey===null and ($bidkey->bidproc=='S' or $bidkey->bidproc=='F'))){
             $this->stdout("\n");
             return;
           }

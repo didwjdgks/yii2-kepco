@@ -121,6 +121,8 @@ class BidWorker extends Worker
     //재입찰번호
     $data['bidRevision']=$basicInfo['bidRevision'];
 		
+		//통화(달러입찰 USD,원화입찰 KRW)
+		$data['currencyCode'] = $basicInfo['currencyCode'];
 		//chasu
 		$data['orgcode_y'] = $basicInfo['revision'];
 

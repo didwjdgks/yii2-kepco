@@ -37,37 +37,44 @@ class BidWorkAction extends \yii\base\Action
     //기초금액
     //-------------------
     $w->addFunction('kepco_work_basic',function($job){
-      $workload=Json::decode($job->workload());
-      $this->stdout("%4한전기초금액> {$workload['no']} {$workload['revision']} {$workload['name']}%n\n");
-      $cookie=$this->module->redis_get('kepco.cookie');
-      $token=$this->module->redis_get('kepco.token');
-      if($workload['purchaseType']==='Product'){
-        $bid=new BidWorkerPur([
-          'id'=>$workload['id'],
-          'cookie'=>$cookie,
-          'token'=>$token,
-        ]);
-      }else{
-        $bid=new BidWorker([
-          'id'=>$workload['id'],
-          'cookie'=>$cookie,
-          'token'=>$token,
-        ]);
-      }
-      $data=$bid->run();
-      if($data!==null and $data['basic']>0){
-        $bidkey=BidKey::find()->where(['whereis'=>'03','notinum'=>$data['notinum']])
-          ->orderBy('bidid desc')->limit(1)->one();
-        if($bidkey!==null){
-          if(empty($bidkey->basic)){
-            $this->stdout(" 한전기초금액 : {$data['basic']}\n");
-            $this->module->gman_do('i2_auto_basic',[
-              'bidid'=>$bidkey->bidid,
-              'basic'=>$data['basic'],
-            ]);
+      try{
+        $workload=Json::decode($job->workload());
+        $this->stdout("%4한전기초금액> {$workload['no']} {$workload['revision']} {$workload['name']}%n\n");
+        $cookie=$this->module->redis_get('kepco.cookie');
+        $token=$this->module->redis_get('kepco.token');
+        if($workload['purchaseType']==='Product'){
+          $bid=new BidWorkerPur([
+            'id'=>$workload['id'],
+            'cookie'=>$cookie,
+            'token'=>$token,
+          ]);
+        }else{
+          $bid=new BidWorker([
+            'id'=>$workload['id'],
+            'cookie'=>$cookie,
+            'token'=>$token,
+          ]);
+        }
+        $data=$bid->run();
+        if($data!==null and $data['basic']>0){
+          $bidkey=BidKey::find()->where(['whereis'=>'03','notinum'=>$data['notinum']])
+            ->orderBy('bidid desc')->limit(1)->one();
+          if($bidkey!==null){
+            if(empty($bidkey->basic)){
+              $this->stdout(" 한전기초금액 : {$data['basic']}\n");
+              $this->module->gman_do('i2_auto_basic',[
+                'bidid'=>$bidkey->bidid,
+                'basic'=>$data['basic'],
+              ]);
+            }
           }
         }
+      }catch(\Exception $e){
+        $this->stdout("%r$e%n\n");
+        \Yii::error($e,'kepco');
       }
+
+      $this->module->db->close();
     });
     //------------------
     //입찰공고
@@ -96,14 +103,13 @@ class BidWorkAction extends \yii\base\Action
           $data=$bid->run();
         }
 
-        if($data!==null){
+        if($data!==null and $data['currencyCode']=='KRW'){
           switch($workload['noticeType']){
           case 'Cancel':
             $this->bid_c($data);
             break;
           case 'New':
           case 'OnceMore':
-          case 'Correct':
             if($workload['revision']>1){
               $this->bid_m($data);
             }
@@ -113,6 +119,9 @@ class BidWorkAction extends \yii\base\Action
             else{
               $this->bid_b($data);
             }
+            break;
+          case 'Correct':
+            $this->bid_m($data,$workload);
             break;
           case 'ReBidding':
             $this->bid_r($data);
@@ -189,7 +198,7 @@ class BidWorkAction extends \yii\base\Action
     }
   }
 
-  public function bid_m($data){
+  public function bid_m($data,$workload){
     list($noti,$revision)=explode('-',$data['notinum']);
     if(preg_match('/^\d{10}$/',$noti,$m)){
       $old_noti=substr($noti,0,4).'-'.substr($noti,4);
@@ -215,6 +224,29 @@ class BidWorkAction extends \yii\base\Action
             'bidid'=>$data['bidid'],
             'attchd_lnk'=>$data['attchd_lnk'],
           ]);
+        }
+      }
+    }
+    else{
+      //정정공고중 차수변화없이 새공고번호로 공고
+      if($workload['beforeBidNoticeNo']){
+        $query=BidKey::find()->where(['whereis'=>'03'])
+          ->andWhere("notinum like '{$workload['beforeBidNoticeNo']}%'");
+        $bidkey=$query->orderBy('bidid desc')->limit(1)->one();
+        if($bidkey!==null){
+          list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
+          $b=sprintf('%02s',intval($b)+1);
+          $data['bidid']="$a-$b-$c-$d";
+          $data['bidproc']='M';
+          $this->stdout("%g > do {$this->i2_func} {$data['bidid']} {$data['bidproc']}%n\n");
+          $this->module->gman_do($this->i2_func,Json::encode($data));
+
+          if(!empty($data['attchd_lnk'])){
+            $this->module->gman_doBack('kepco_file_download',[
+              'bidid'=>$data['bidid'],
+              'attchd_lnk'=>$data['attchd_lnk'],
+            ]);
+          }
         }
       }
     }

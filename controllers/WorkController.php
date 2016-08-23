@@ -45,9 +45,9 @@ class WorkController extends \yii\console\Controller
 			$token=$this->module->redis_get('kepco.token');
 
 			if(preg_match('/^\d{10}$/',$workload['no'],$m)){
-				$old_notinum=substr($workload['no'],0,4).'-'.substr($workload['no'],4);
+				$old_noti=substr($workload['no'],0,4).'-'.substr($workload['no'],4);
 			}else{
-				$old_notinum=substr($workload['no'],0,3).'-'.substr($workload['no'],3,2).'-'.substr($workload['no'],5);
+				$old_noti=substr($workload['no'],0,3).'-'.substr($workload['no'],3,2).'-'.substr($workload['no'],5);
 			}
         
       $notinum = $workload['no'].'-'.$workload['revision'];
@@ -60,7 +60,10 @@ class WorkController extends \yii\console\Controller
 
       $data =$worker->run();
 
-      $bidkey = BidKey::find() -> where("notinum='{$notinum}' or notinum='{$old_notinum}'")
+			$notinum = $data['notinum'].'-'.$data['revision'];
+
+			list($noti,$revision)=explode('-',$notinum);
+      $bidkey = BidKey::find() -> where("notinum like '{$noti}%' or notinum like '{$old_noti}%'")
       ->andWhere(['whereis'=>'03'])
       ->orderBy('bidid desc')
       ->limit(1)->one();
@@ -69,7 +72,7 @@ class WorkController extends \yii\console\Controller
 			
 			$this->stdout(" %yNEW%n\n");
 
-      $data['notinum'] = $bidkey['notinum'];
+      $data['notinum'] = $notinum;
       $data['constnm'] = $bidkey['constnm'];
       $data['bidid'] = $bidkey['bidid'];
 

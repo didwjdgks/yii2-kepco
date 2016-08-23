@@ -151,6 +151,7 @@ class WatchController extends \yii\console\Controller
               }
             }
 
+            /*
             switch($row['bidTypeCombine']){
             case '제한적최저가낙찰제':
             case '제한적최저가':
@@ -164,6 +165,7 @@ class WatchController extends \yii\console\Controller
                 return;
               }
             }
+             */
 
             $this->stdout("\n");
 
@@ -172,6 +174,9 @@ class WatchController extends \yii\console\Controller
             $closedt=strtotime($bidkey->closedt);
             if($closedt!=$endDateTime and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
+              //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
+              //$bidkey->save();
+              
               $msg=[];
               $msg[]="입찰마감일을 확인하세요.";
               $msg[]="공고번호 : {$bidkey->notinum}";
@@ -182,6 +187,7 @@ class WatchController extends \yii\console\Controller
                   155, //박경찬
                 ]);
               }
+              
             }
 
             return;

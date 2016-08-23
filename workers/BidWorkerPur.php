@@ -159,6 +159,9 @@ class BidWorkerPur extends Worker
 
     $data['notinum'] = $basicInfo['no'].'-'.$basicInfo['revision'];
     $data['bidRevision']=$basicInfo['bidRevision'];
+
+		//통화(달러입찰 USD,원화입찰 KRW)
+		$data['currencyCode'] = $basicInfo['currencyCode'];
 		
 		//chasu
 		$data['orgcode_y'] = $basicInfo['revision'];

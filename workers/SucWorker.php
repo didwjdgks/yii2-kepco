@@ -49,26 +49,34 @@ class SucWorker extends Worker
 			];
 		}
 		elseif($result =='Fail'){                                                      //유찰
-			$data['officenm1'] = '유찰';
-			$data['bidproc'] ='F';
-			$data['nbidcomment'] = $this->alldata['failReason'];
+			$data['officenm1']		= '유찰';
+			$data['bidproc']			='F';
+      $data['nbidcomment']	= $this->alldata['failReason'];
+      $data['notinum']			= $this->alldata['no'];
+      $data['revision']			= $this->alldata['revision'];			
 			return $data;
 		}
 		elseif($result =='FailPrivate'){                                               //유찰.수의계약
-			$data['officenm1'] ='유찰';
-			$data['bidproc'] = 'F';
-			$data['nbidcomment'] = $this->alldata['failReason'];
+			$data['officenm1']		='유찰';
+			$data['bidproc']			= 'F';
+      $data['nbidcomment']	= $this->alldata['failReason'];
+      $data['notinum']			= $this->alldata['no'];
+      $data['revision']			= $this->alldata['revision'];			
 			return $data;
 		}
-		elseif($result =='FailReRfx'){                                                 //유찰.재공고
-			$data['nbidcomment'] = $this->alldata['failReason'];
-			$data['bidproc'] ='F';
+		elseif($result =='FailReRfx' or $result =='ReRFX'){                                                 //유찰.재공고
+			$data['nbidcomment']	= $this->alldata['failReason'];
+      $data['bidproc']			='F';
+      $data['notinum']			= $this->alldata['no'];
+      $data['revision']			= $this->alldata['revision'];			
 			print_r("유찰/재공고");
 			return $data;
 		}
 		elseif($result =='NotDetermined'){                                             //유찰
-			$data['nbidcomment'] = $this->alldata['failReason'];
-			$data['bidproc'] = 'F';
+			$data['nbidcomment']	= $this->alldata['failReason'];
+      $data['bidproc']			= 'F';
+      $data['notinum']			= $this->alldata['no'];
+      $data['revision']			= $this->alldata['revision'];			
 			print_r("유찰");
 			return $data;
 		}
@@ -167,10 +175,10 @@ class SucWorker extends Worker
       $tot_arr[$jsize+$i] = $min_arr[$i];
     }
 
-    $asize = count($a_arr)-1;                                                     //투차율없는경우 -로 바꿈
+    $asize = count($a_arr)-1;                                                     //투찰율없는경우 -로 바꿈
+    $rank = -$ksize -2;
     for($i=0; $i<=$asize; $i++){
       if($i==0){
-        $rank = -$ksize-1;
         if($ksize <0){
           $jsize = $jsize +2;
         }
@@ -254,11 +262,14 @@ class SucWorker extends Worker
 		}
 		$multispare = substr($multispare,1); 
 		$selms = substr($selms,1);
-		$redata['selms'] = $selms;
+		$redata['selms']			= $selms;
 		$redata['multispare'] = $multispare;
-		$redata['yega'] = $this->alldata['estimatedAmount'].'.00';
-		$redata['bidproc'] = 'S';
-		$redata['succoms'] = $tot_arr;
+		$redata['yega']				= $this->alldata['estimatedAmount'].'.00';
+		$redata['bidproc']		= 'S';
+    $redata['succoms']		= $tot_arr;
+    $redata['notinum']		= $this->alldata['no'];
+    $redata['revision']		= $this->alldata['revision'];
+
     unset($redata['rank']);
 		return $redata;
 	}
