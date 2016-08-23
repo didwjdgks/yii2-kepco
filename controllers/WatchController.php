@@ -172,7 +172,8 @@ class WatchController extends \yii\console\Controller
             //입찰마감비교
             $endDateTime=strtotime($row['endDateTime']);
             $closedt=strtotime($bidkey->closedt);
-            if($closedt!=$endDateTime and $bidkey->state=='Y'){
+            $interval=abs($endDateTime-$closedt);
+            if($closedt!=$endDateTime and $interval>=3600 and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
               //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
               //$bidkey->save();
@@ -181,12 +182,12 @@ class WatchController extends \yii\console\Controller
               $msg[]="입찰마감일을 확인하세요.";
               $msg[]="공고번호 : {$bidkey->notinum}";
               $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
-              if($row['purchaseType']!=='Product'){
+              //if($row['purchaseType']!=='Product'){
                 $this->module->gman_talk(join("\n",$msg),[
                   149, //양정한
                   155, //박경찬
                 ]);
-              }
+              //}
               
             }
 

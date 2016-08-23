@@ -8,6 +8,14 @@ use kepco\workers\FileWorker;
 
 class AttchdController extends \yii\console\Controller
 {
+  public $gman_fileconv;
+
+  public function init(){
+    parent::init();
+    $this->gman_fileconv=new \GearmanClient;
+    $this->gman_fileconv->addServers('115.68.48.231');
+  }
+
   public function actionIndex(){
     $w=new \GearmanWorker();
     $w->addServers($this->module->gman_server);
@@ -35,6 +43,8 @@ class AttchdController extends \yii\console\Controller
           //echo $cmd,PHP_EOL;
           $res=exec($cmd);
         }
+
+        $this->gman_fileconv->doBackground('fileconv',$bidid);
       }
       catch(\Exception $e){
         $this->stdout("$e\n",Console::FG_RED);

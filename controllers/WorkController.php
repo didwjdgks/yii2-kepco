@@ -13,10 +13,7 @@ class WorkController extends \yii\console\Controller
 
 
   public $i2_gman_func;
-//  private $i2_func='i2_auto_suc';
-
-  
-
+  //private $i2_func='i2_auto_suc';
 
   public function stdout2($string){
     $this->stdout(Console::renderColoredString($string));
@@ -40,7 +37,7 @@ class WorkController extends \yii\console\Controller
     $w->addServers($this->module->gman_server);
     $w->addFunction('kepco_work_suc',function($job){
       $workload=Json::decode($job->workload());
-      $this->stdout2("kepco> %g{$workload['no']}%n %r{$workload['name']} %g{$workload['id']}%n\n");      
+			$this->stdout2("kepco> %g[worker]%n {$workload['no']} {$workload['revision']} {$workload['name']} %g{$workload['id']}%n\n");      
 			$cookie=$this->module->redis_get('kepco.cookie');
 			$token=$this->module->redis_get('kepco.token');
 
@@ -76,7 +73,8 @@ class WorkController extends \yii\console\Controller
       $data['constnm'] = $bidkey['constnm'];
       $data['bidid'] = $bidkey['bidid'];
 
-      $this->stdout("%g> do {$this->i2_gman_func} {$data['bidid']} {$data['bidproc']}%n\n");
+      $this->stdout2("%g > do {$this->i2_gman_func} {$data['bidid']} {$data['bidproc']}%n\n");
+			
       $this->module->gman_do($this->i2_gman_func,Json::encode($data));
 
 
