@@ -36,53 +36,58 @@ class WorkController extends \yii\console\Controller
     $w=new \GearmanWorker;
     $w->addServers($this->module->gman_server);
     $w->addFunction('kepco_work_suc',function($job){
-      $workload=Json::decode($job->workload());
-			$this->stdout2("kepco> %g[worker]%n {$workload['no']} {$workload['revision']} {$workload['name']} %g{$workload['id']}%n\n");      
-			$cookie=$this->module->redis_get('kepco.cookie');
-			$token=$this->module->redis_get('kepco.token');
+      try{
+        $workload=Json::decode($job->workload());
+        $this->stdout2("kepco> %g[worker]%n {$workload['no']} {$workload['revision']} {$workload['name']} %g{$workload['id']}%n\n");      
+        $cookie=$this->module->redis_get('kepco.cookie');
+        $token=$this->module->redis_get('kepco.token');
 
-			if(preg_match('/^\d{10}$/',$workload['no'],$m)){
-				$old_noti=substr($workload['no'],0,4).'-'.substr($workload['no'],4);
-			}else{
-				$old_noti=substr($workload['no'],0,3).'-'.substr($workload['no'],3,2).'-'.substr($workload['no'],5);
-			}
+        if(preg_match('/^\d{10}$/',$workload['no'],$m)){
+          $old_noti=substr($workload['no'],0,4).'-'.substr($workload['no'],4);
+        }else{
+          $old_noti=substr($workload['no'],0,3).'-'.substr($workload['no'],3,2).'-'.substr($workload['no'],5);
+        }
+          
+        $notinum = $workload['no'].'-'.$workload['revision'];
+
+        $worker=new SucWorker([
+         'id'=>$workload['id'],
+         'cookie'=>$cookie,
+         'token'=>$token,
+        ]);
+
+        $data =$worker->run();
+
+        $notinum = $data['notinum'].'-'.$data['revision'];
+
+        list($noti,$revision)=explode('-',$notinum);
+        $bidkey = BidKey::find() -> where("notinum like '{$noti}%' or notinum like '{$old_noti}%'")
+        ->andWhere(['whereis'=>'03'])
+        ->orderBy('bidid desc')
+        ->limit(1)->one();
+
+        if($bidkey===null) return;
         
-      $notinum = $workload['no'].'-'.$workload['revision'];
+        $this->stdout2(" %yNEW%n\n");
 
-			$worker=new SucWorker([
-			 'id'=>$workload['id'],
-			 'cookie'=>$cookie,
-			 'token'=>$token,
-			]);
+        $data['notinum'] = $notinum;
+        $data['constnm'] = $bidkey['constnm'];
+        $data['bidid'] = $bidkey['bidid'];
 
-      $data =$worker->run();
+        $this->stdout2("%g > do {$this->i2_gman_func} {$data['bidid']} {$data['bidproc']}%n\n");
+        
+        $this->module->gman_do($this->i2_gman_func,Json::encode($data));
+      }catch(\Exception $e){
+        $this->stdout2("%r$e%n\n");
+        \Yii::error($e,'kepco');
+      }
 
-			$notinum = $data['notinum'].'-'.$data['revision'];
-
-			list($noti,$revision)=explode('-',$notinum);
-      $bidkey = BidKey::find() -> where("notinum like '{$noti}%' or notinum like '{$old_noti}%'")
-      ->andWhere(['whereis'=>'03'])
-      ->orderBy('bidid desc')
-      ->limit(1)->one();
-
-      if($bidkey===null) return;
+			$this->module->db->close();
+      $this->stdout2(sprintf("[%s] Peak memory usage: %sMb\n",
+      date('Y-m-d H:i:s'),
+      (memory_get_peak_usage(true)/1024/1024)
+    ),Console::FG_GREY);
 			
-			$this->stdout(" %yNEW%n\n");
-
-      $data['notinum'] = $notinum;
-      $data['constnm'] = $bidkey['constnm'];
-      $data['bidid'] = $bidkey['bidid'];
-
-      $this->stdout2("%g > do {$this->i2_gman_func} {$data['bidid']} {$data['bidproc']}%n\n");
-			
-      $this->module->gman_do($this->i2_gman_func,Json::encode($data));
-
-
-//      $c=new \GearmanClient;
-//      $c->addServers('127.0.0.1');
-//      $c->doNormal($this->i2_gman_func,Json::encode($data));
-    
-     // print_r($data);
       sleep(1);
     });
       while($w->work());
