@@ -56,11 +56,19 @@ class BidWorkAction extends \yii\base\Action
           ]);
         }
         $data=$bid->run();
+
+				list($noti,$revision)=explode('-',$data['notinum']);
+				if(preg_match('/^\d{10}$/',$noti,$m)){
+					$old_noti=substr($noti,0,4).'-'.substr($noti,4);
+				}else{
+					$old_noti=substr($noti,0,3).'-'.substr($noti,3,2).'-'.substr($noti,5,5);
+				}
+
         if($data!==null and $data['basic']>0){
-          $bidkey=BidKey::find()->where(['whereis'=>'03','notinum'=>$data['notinum']])
-            ->orderBy('bidid desc')->limit(1)->one();
+          $query=BidKey::find()->where(['whereis'=>'03',])->andWhere("notinum like '{$noti}%' or notinum like '{$old_noti}%'");
+					$bidkey=$query->orderBy('bidid desc')->limit(1)->one();					
           if($bidkey!==null){
-            if(empty($bidkey->basic)){
+            if(empty($bidkey->basic) or $bidkey->basic==0){
               $this->stdout(" 한전기초금액 : {$data['basic']}\n");
               $this->module->gman_do('i2_auto_basic',[
                 'bidid'=>$bidkey->bidid,
@@ -102,7 +110,9 @@ class BidWorkAction extends \yii\base\Action
           ]);
           $data=$bid->run();
         }
-
+				
+				print_r($data['org_i']);
+				//exit;
         if($data!==null and $data['currencyCode']=='KRW'){
           switch($workload['noticeType']){
           case 'Cancel':

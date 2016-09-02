@@ -151,7 +151,7 @@ class WatchController extends \yii\console\Controller
               }
             }
 
-            /*
+            
             switch($row['bidTypeCombine']){
             case '제한적최저가낙찰제':
             case '제한적최저가':
@@ -165,7 +165,7 @@ class WatchController extends \yii\console\Controller
                 return;
               }
             }
-             */
+            
 
             $this->stdout("\n");
 
@@ -176,19 +176,22 @@ class WatchController extends \yii\console\Controller
             if($closedt!=$endDateTime and $interval>=3600 and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
               //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
+              //$bidkey->constdt=date('Y-m-d H:i:s',strtotime('+1 hour',$endDateTime));
               //$bidkey->save();
               
-              $msg=[];
-              $msg[]="입찰마감일을 확인하세요.";
-              $msg[]="공고번호 : {$bidkey->notinum}";
-              $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
-              //if($row['purchaseType']!=='Product'){
-                $this->module->gman_talk(join("\n",$msg),[
-                  149, //양정한
-                  155, //박경찬
-                ]);
-              //}
-              
+              if(time()<$endDateTime){
+                  $msg=[];
+                  $msg[]="입찰마감일을 확인하세요.";
+                  $msg[]="공고번호 : {$bidkey->notinum}";
+                  $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
+                  //if($row['purchaseType']!=='Product'){
+                    $this->module->gman_talk(join("\n",$msg),[
+                      149, //양정한
+                      155, //박경찬
+                    ]);
+                  //}
+              } 
+                         
             }
 
             return;

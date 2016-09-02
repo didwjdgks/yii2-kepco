@@ -190,10 +190,35 @@ class BidWorkerPur extends Worker
 			"COM16"		=>	"한국해상풍력(주)",
 			"COM19"		=>	"카페스 주식회사",
 		);
+
+		// case 1 : 공고부서 생략(1번째까지 수집) , case 2 : 본부(2번째)까지 수집, case 3 : 사업소 제외후 본부까지 수집,
+		// case 4 : 소,처등(3번째까지 수집 단 경영관리본부 일때는 2번째까지 수집)
+		// case 1  - 3 9 11 12 14 16 19 , case 2  - 1 4 8 , case 3 - 2 5 6 , case 4 - 10
+		$comCase1 = array("COM03","COM09","COM11","COM12","COM14","COM16","COM19");
+		$comCase2 = array("COM01","COM04","COM08");
+		$comCase3 = array("COM02","COM05","COM06");
+		$comCase4 = array("COM10");
 		//org
 		$data['org'] = $basicInfo['representativeDepartmentName'];
 
-		$data['org_i'] = $company[$basicInfo['companyId']].' '.$basicInfo['representativeDepartmentName'];
+		if(in_array($basicInfo['companyId'],$comCase1)){
+			$data['org_i'] = $company[$basicInfo['companyId']];	
+		}else if(in_array($basicInfo['companyId'],$comCase2)){
+			list($org_i,)=explode(' ',$basicInfo['representativeDepartmentName']);
+			$data['org_i'] = $company[$basicInfo['companyId']].' '.$org_i;	
+		}else if(in_array($basicInfo['companyId'],$comCase3)){
+			$tmp = str_replace("사업소 ","",$basicInfo['representativeDepartmentName']);
+			list($org_i,)=explode(' ',$tmp);
+			$data['org_i'] = $company[$basicInfo['companyId']].' '.$org_i;			
+		}else if(in_array($basicInfo['companyId'],$comCase4)){
+			if(strpos($basicInfo['representativeDepartmentName'],'경영관리본부')!==false){
+				list($org_i,)=explode(' ',$basicInfo['representativeDepartmentName']);
+				$data['org_i'] = $company[$basicInfo['companyId']].' '.$org_i;	
+			}else{
+				list($org_i1,$org_i2,)=explode(' ',$basicInfo['representativeDepartmentName']);
+				$data['org_i'] = $company[$basicInfo['companyId']].' '.$org_i1.' '.$org_i2;	
+			}
+		}
 
 		//contract
     if($basicInfo['competitionType']=='Limited')	$data['contract'] = '20';
