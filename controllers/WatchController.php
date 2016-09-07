@@ -27,6 +27,7 @@ class WatchController extends \yii\console\Controller
   public function actions(){
     return [
       'suc'=>'kepco\actions\SucWatchAction',
+      'suc2'=>'kepco\actions\Suc2WatchAction', //숨겨진 개찰정보 watcher
     ];
   }
 

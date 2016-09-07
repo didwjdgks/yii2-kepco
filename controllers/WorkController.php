@@ -22,6 +22,7 @@ class WorkController extends \yii\console\Controller
   public function actions(){
     return [
       'bid'=>'kepco\actions\BidWorkAction',
+      'suc2'=>'kepco\actions\Suc2WorkAction',
     ];
   }
   public function memory_usage(){
@@ -57,7 +58,10 @@ class WorkController extends \yii\console\Controller
         ]);
 
         $data =$worker->run();
+				
 
+
+		
         $notinum = $data['notinum'].'-'.$data['revision'];
 
         list($noti,$revision)=explode('-',$notinum);
@@ -65,7 +69,7 @@ class WorkController extends \yii\console\Controller
         ->andWhere(['whereis'=>'03'])
         ->orderBy('bidid desc')
         ->limit(1)->one();
-
+		
         if($bidkey===null) return;
         
         $this->stdout2(" %yNEW%n\n");
@@ -75,7 +79,7 @@ class WorkController extends \yii\console\Controller
         $data['bidid'] = $bidkey['bidid'];
 
         $this->stdout2("%g > do {$this->i2_gman_func} {$data['bidid']} {$data['bidproc']}%n\n");
-        
+
         $this->module->gman_do($this->i2_gman_func,Json::encode($data));
       }catch(\Exception $e){
         $this->stdout2("%r$e%n\n");

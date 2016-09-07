@@ -48,8 +48,12 @@ class SucWatchAction extends \yii\base\Action
           
           if(preg_match('/^\d{10}$/',$row['no'],$m)){
             $old_noti=substr($row['no'],0,4).'-'.substr($row['no'],4);
-          }else{
+          }else if(preg_match('/^[A-Z]\d{9}$/',$row['no'],$m)){
             $old_noti=substr($row['no'],0,3).'-'.substr($row['no'],3,2).'-'.substr($row['no'],5);
+          }else{
+            $this->stdout(" %rERROR: {$row['no']}%n\n");
+            sleep(5);
+            return;
           }
           
 					$noti=$row['no'];

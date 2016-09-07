@@ -129,7 +129,7 @@ class BidWorker extends Worker
 		//constnm
 		$data['constnm'] = $basicInfo['name'];
 		
-		if(strpos($data['constnm'],'용역')!==false){
+		if($data['syscode']=='KBC' and strpos($data['constnm'],'용역')!==false){
 			$data['bidtype']	= 'ser';
 			$data['bidview']	= 'ser';
 		}

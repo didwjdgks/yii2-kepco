@@ -169,10 +169,10 @@ class BidWorkerPur extends Worker
 		//constnm
 		$data['constnm'] = $basicInfo['name'];
 		
-		if(strpos($data['constnm'],'용역')!==false){
+		/*if(strpos($data['constnm'],'용역')!==false){
 			$data['bidtype']	= 'ser';
 			$data['bidview']	= 'ser';
-		}
+		}*/
 
 		$company = array(
 			"COM01"		=>	"한국전력공사",
