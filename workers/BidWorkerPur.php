@@ -234,6 +234,9 @@ class BidWorkerPur extends Worker
 		else if($basicInfo['bidType']=='Nego') $data['succls'] = '07';
 		else if($basicInfo['bidType']=='LimitedLowestPrice')	$data['succls'] = '03';
 		else	$data['succls'] = '00';
+
+		//succls2 - 규격,가격 동시입찰 일경우 2단계 및 규격분리입찰(06)
+		if(strpos($basicInfo['bidTypeCombine'],'규격,가격 동시입찰')!==false)	$data['succls'] = '06';
 		
 		//yegatype
 		$data['yegatype'] = '25';

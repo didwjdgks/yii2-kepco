@@ -59,9 +59,6 @@ class WorkController extends \yii\console\Controller
 
         $data =$worker->run();
 				
-
-
-		
         $notinum = $data['notinum'].'-'.$data['revision'];
 
         list($noti,$revision)=explode('-',$notinum);
@@ -71,7 +68,8 @@ class WorkController extends \yii\console\Controller
         ->limit(1)->one();
 		
         if($bidkey===null) return;
-        
+        if($data['bidproc']===null) return;
+
         $this->stdout2(" %yNEW%n\n");
 
         $data['notinum'] = $notinum;

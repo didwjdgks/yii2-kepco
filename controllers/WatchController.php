@@ -189,6 +189,7 @@ class WatchController extends \yii\console\Controller
                     $this->module->gman_talk(join("\n",$msg),[
                       149, //양정한
                       155, //박경찬
+                      254, //김홍인
                     ]);
                   //}
               } 

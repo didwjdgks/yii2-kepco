@@ -185,9 +185,9 @@ class SucWorker extends Worker
 	 */  
 		  }
 		  
-				$min_arr[$i]['rank'] = $rank - $i;
+				$min_arr[$ksize-$i]['rank'] = $rank - $i;
 		  //			$tot_arr[$jsize+$asize+$i] = $min_arr[$i];
-		  $tot_arr[$jsize+$i] = $min_arr[$i];
+		  $tot_arr[$jsize+$i] = $min_arr[$ksize-$i];
 		}
 
 		$asize = count($a_arr)-1;                                                     //투찰율없는경우 -로 바꿈
@@ -229,6 +229,7 @@ class SucWorker extends Worker
 			$size = count($succom['officenm'])-1;
 			$c = -1;
 			$r =  1;
+			$b = 0;
 			for($i=0; $i<=$size; $i++){                                                    
 				$data[$i]['prenm'] = $succom['prenm'][$i];
 				$data[$i]['officenm'] = $succom['officenm'][$i];
@@ -244,16 +245,33 @@ class SucWorker extends Worker
 					$r = $r + 1;
 					$j = $j + 1;
 				}else{
-					$a_arr[$j] = $data[$i];
-					$a_arr[$j]['rank'] = $c;
-					$a_arr[$j]['etc'] = '';
-					$a_arr[$j]['seq'] = $r;
-					$r = $r + 1;
-					$j = $j + 1;
-					$c = $c - 1;
+					$b_arr[$b] = $data[$i];
+					//$b_arr[$b]['rank'] = $c;
+					$b_arr[$b]['etc'] = '';
+					//$b_arr[$b]['seq'] = $r;
+					//$r = $r + 1;
+					//$j = $j + 1;
+					//$c = $c - 1;
+					$b = $b + 1;
 				}
 			}
-			
+		
+			$b_size = count($b_arr)-1;
+			$b_size2 = count($b_arr)-1;
+			for ($i=0; $i<=$b_size2; $i++){
+				$b_arr[$b_size]['seq'] = $r;
+				$b_arr[$b_size]['rank'] = $c;
+				$b_size = $b_size-1;
+				$r = $r + 1;
+				$c = $c - 1;
+			}
+			$b_size = count($b_arr)-1;
+			$b_size2 = count($b_arr)-1;
+			for ($i=0; $i<=$b_size2; $i++){
+				$a_arr[$j] = $b_arr[$b_size];
+				$b_size = $b_size-1;
+				$j = $j + 1;
+			}
 			
 			$data['res']['innum'] = count($a_arr);
 			$data['res']['prenm1'] = $a_arr[0]['prenm'];
@@ -262,6 +280,7 @@ class SucWorker extends Worker
 			$data['res']['success1'] = $a_arr[0]['success'];
 			$redata= $data['res'];
 			$redata['succoms'] = $a_arr;
+			
 			
 		}
 		$post_data=[                                                                  //예가 추첨된거
@@ -331,6 +350,7 @@ class SucWorker extends Worker
 		$redata['bidproc']		= 'S';
 		$redata['notinum']		= $this->alldata['no'];
 		$redata['revision']		= $this->alldata['revision'];
+		
 		
 		unset($redata['rank']);
 		
