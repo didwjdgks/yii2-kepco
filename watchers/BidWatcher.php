@@ -17,15 +17,16 @@ class BidWatcher extends Watcher
           [
             'companyId'=>'ALL',
             'fromNoticeDate'=>date('Y-m-d',strtotime('-2 month')).'T00:00:00',
-            'toNoticeDate'=>date('Y-m-d').'T00:00:00',												
+            'toNoticeDate'=>date('Y-m-d').'T00:00:00',						
             'limit'=>30,
+						//'no'=>'G141618003',
             'page'=>1,
             'start'=>0,
             'totalCount'=>0,
           ],
         ],
         'method'=>'findNoticeSPList',
-        'tid'=>204,
+        'tid'=>17,
         'type'=>'rpc',
       ];
       $res=$this->post(static::URL,[

@@ -15,8 +15,8 @@ class SucWatcher extends Watcher
         'data'=>[
         [
           'companyId'=>'ALL',
-          'fromNoticeDate'=>date('Y-m-d',strtotime('-30 day')).'T00:00:00',
-          'toNoticeDate'=>date('Y-m-d').'T00:00:00',
+          'fromNoticeDate'=>date('Y-m-d',strtotime('-60 day')).'T00:00:00',
+          'toNoticeDate'=>date('Y-m-d').'T00:00:00',					
           'limit'=>100,
           'page'=>1,
           'start'=>0,

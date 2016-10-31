@@ -51,6 +51,22 @@ class BidWorkerPur extends Worker
           ],
         ],
       ],
+			[
+        'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',        
+        'method'=>'findRegionCodeData',
+        'tid'=>40,
+        'type'=>'rpc',
+				'data'=>[
+					[	'bidFileType'=>'Bid',
+            'bidId'=>$this->id,
+            'fileGroupId'=>'ConstructionBidFileGroup',
+            'limit'=>100,
+            'page'=>1,
+            'start'=>0,
+            'type'=>'Bid',
+					],
+				],
+      ],
       //품목정보요청
       [ 'action'=>'smartsuit.ui.etnajs.pro.rfx.sp.BidDetailController',
         'method'=>'findBidItems',
@@ -73,6 +89,7 @@ class BidWorkerPur extends Worker
       switch($row['method']){
         case 'findBidBasicInfo': $basicInfo=$row['result']; break;
         case 'getFileItemList': $fileList=$row['result']; break;
+				case 'findRegionCodeData' : $locationInfo=$row['result']; break;
         case 'findBidChangeTimeDetailList':
           $findBidChangeTimeDetailList=$row['result'];
           break;
@@ -140,6 +157,27 @@ class BidWorkerPur extends Worker
         break;
       }
     }
+
+		$location = array(
+			"전국"		=>	0,												
+			"서울"		=>	1,
+			"부산"		=>	2,
+			"광주"		=>	3,
+			"대전"		=>	4,
+			"인천"		=>	5,
+			"대구"		=>	6,
+			"울산"		=>	7,
+			"경기"		=>	8,
+			"강원"		=>	9,
+			"충북"		=>	10,
+			"충남"		=>	11,
+			"경북"		=>	12,
+			"경남"		=>	13,
+			"전북"		=>	14,
+			"전남"		=>	15,
+			"제주"		=>	16,
+			"세종"		=>	17,
+		);
 		
 		$bidtype = $basicInfo['itemType'];
 		
@@ -235,9 +273,9 @@ class BidWorkerPur extends Worker
 		else if($basicInfo['bidType']=='LimitedLowestPrice')	$data['succls'] = '03';
 		else	$data['succls'] = '00';
 
-		//succls2 - 규격,가격 동시입찰 일경우 2단계 및 규격분리입찰(06)
+		//succls2 - 규격,가격 동시입찰,2단계 동시입찰 일경우 2단계 및 규격분리입찰(06)
 		if(strpos($basicInfo['bidTypeCombine'],'규격,가격 동시입찰')!==false)	$data['succls'] = '06';
-		
+		if(strpos($basicInfo['bidTypeCombine'],'2단계 동시입찰')!==false)	$data['succls'] = '06';
 		//yegatype
 		$data['yegatype'] = '25';
 		
@@ -274,7 +312,7 @@ class BidWorkerPur extends Worker
 		//state
 		$data['state'] = 'N';
 
-    $data['bid_html'] = "계약조건 공시장소 : <br>".$basicInfo['mailBidDistribution']."<br><br>"."계약착수일 및 완료일 : <br>".$basicInfo['contractBeginEndDate']."<br><br>"."입찰시 제출서류 : <br>".$basicInfo['bidAttendDocument']. "<br><br>"."입찰참가자격 : <br>".$basicInfo['bidAttendRestrict']."<br><br>"."입찰보증금귀속 : <br>".$basicInfo['bidBondBelong']."<br><br>"."입찰무효사항: <br>".$basicInfo['bidNullification']."<br><br>"."입찰참가신청서류 : <br>". $basicInfo['bidAttendRequestDocument']."<br><br>"."추가정보제공처 : <br>".$basicInfo['moreInformation']."<br><br>"."기타공고사항 : <br>".$basicInfo['etc'];
+    $data['bid_html'] = "<pre><strong>계약조건 공시장소 : </strong><br><br>".$basicInfo['mailBidDistribution']."<br><br><strong>계약착수일 및 완료일 : </strong><br><br>".$basicInfo['contractBeginEndDate']."<br><br><strong>입찰시 제출서류 : </strong><br><br>".$basicInfo['bidAttendDocument']. "<br><br><strong>입찰참가자격 : </strong><br><br>".$basicInfo['bidAttendRestrict']."<br><br><strong>입찰보증금귀속 : </strong><br><br>".$basicInfo['bidBondBelong']."<br><br><strong>입찰무효사항: </strong><br><br>".$basicInfo['bidNullification']."<br><br><strong>입찰참가신청서류 : </strong><br><br>". $basicInfo['bidAttendRequestDocument']."<br><br><strong>추가정보제공처 : </strong><br><br>".$basicInfo['moreInformation']."<br><br><strong>기타공고사항 : </strong><br><br>".$basicInfo['etc']."</pre>";
 
     //품목정보
     if(is_array($bidItems)){
@@ -307,7 +345,50 @@ class BidWorkerPur extends Worker
     }
     $data['attchd_lnk']=join('|',$files);
 
+		$sublocal = '';
+		if(is_array($locationInfo)){			
+			foreach($locationInfo as $loc){				
+				if(($data['location']&pow(2,$location[$loc['areaCodeName']]))==0)	$data['location']+=pow(2,$location[$loc['areaCodeName']]);
+				
+				if($loc['subAreaCodeName']!==null and $loc['subAreaCodeName']!==''){
+					if(strpos($sublocal,$loc['subAreaCodeName'])===false){
+						$data['bid_local'][]=[
+							'name'=>$this->renameLoc($loc['areaCodeName'])." ".$loc['subAreaCodeName'],
+							'hname'=>$this->renameLoc($loc['areaCodeName']),
+						];
+
+						if($sublocal=='')	$sublocal=trim($loc['subAreaCodeName']);
+						else	$sublocal=$sublocal.','.trim($loc['subAreaCodeName']);
+						$sublocal=trim($sublocal);
+					}
+				}
+			}			
+		}
+
     return $data;
   }
+
+	public function renameLoc($loc_value){
+		$rename = '전국';
+		
+		if($loc_value=='서울')	$rename='서울특별시';
+		else if($loc_value=='부산')	$rename='부산광역시';
+		else if($loc_value=='광주')	$rename='광주광역시';
+		else if($loc_value=='대전')	$rename='대전광역시';
+		else if($loc_value=='인천')	$rename='인천광역시';
+		else if($loc_value=='대구')	$rename='대구광역시';
+		else if($loc_value=='울산')	$rename='울산광역시';
+		else if($loc_value=='경기')	$rename='경기도';
+		else if($loc_value=='강원')	$rename='강원도';
+		else if($loc_value=='충북')	$rename='충청북도';
+		else if($loc_value=='충남')	$rename='충청남도';
+		else if($loc_value=='경남')	$rename='경상남도';
+		else if($loc_value=='경북')	$rename='경상북도';
+		else if($loc_value=='전북')	$rename='전라북도';
+		else if($loc_value=='전남')	$rename='전라남도';
+		else if($loc_value=='제주')	$rename='제주특별자치도';
+
+		return $rename;
+	}
 }
 

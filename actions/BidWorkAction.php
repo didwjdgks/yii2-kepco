@@ -111,7 +111,8 @@ class BidWorkAction extends \yii\base\Action
           $data=$bid->run();
         }
 				
-				print_r($data['org_i']);
+				$this->stdout("%r > location code : {$data['location']}%n\n");
+				print_r($data['bid_local']);
 				//exit;
         if($data!==null and $data['currencyCode']=='KRW'){
           switch($workload['noticeType']){
@@ -258,6 +259,21 @@ class BidWorkAction extends \yii\base\Action
             ]);
           }
         }
+				/* 정정공고인데 새공고번호로 등록됐지만 원공고가 없을때 처리 */
+				else{					
+					list($noti,$revision)=explode('-',$data['notinum']);					
+					$data['bidid']=sprintf('%s%s-00-00-01',date('ymdHis'),str_pad(mt_rand(0,999),3,'0',STR_PAD_LEFT));
+					$data['bidproc']='B';
+					$this->stdout("%g > do {$this->i2_func} {$data['bidid']} {$data['bidproc']}%n\n");
+					$this->module->gman_do($this->i2_func,Json::encode($data));
+					
+					if(!empty($data['attchd_lnk'])){
+						$this->module->gman_doBack('kepco_file_download',[
+							'bidid'=>$data['bidid'],
+							'attchd_lnk'=>$data['attchd_lnk'],
+						]);
+					}					
+				}
       }
     }
   }

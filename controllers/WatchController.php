@@ -175,7 +175,62 @@ class WatchController extends \yii\console\Controller
             $closedt=strtotime($bidkey->closedt);
             $interval=abs($endDateTime-$closedt);
             if($closedt!=$endDateTime and $interval>=3600 and $bidkey->state=='Y'){
+						//if($closedt!=$endDateTime and $endDateTime-$closedt >=3600 and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
+              
+							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 start (2016.10.05)
+							$data['closedt']=date('Y-m-d H:i:s',strtotime($row['endDateTime']));
+              $data['constdt']=date('Y-m-d H:i:s',strtotime('+1 hour',strtotime($data['closedt'])));
+              if($row['bidAttendRequestCloseDateTime']){
+                $data['registdt']=date('Y-m-d H:i:s',strtotime($row['bidAttendRequestCloseDateTime']));
+              }
+              $data['previd']=$bidkey->bidid;
+              $data['bidproc']='L';
+              $data['whereis']=$bidkey->whereis;
+              $data['notinum']=$bidkey->notinum;
+              $data['constnm']=$bidkey->constnm;
+              $data['bidid']=$bidkey->bidid;
+              $this->module->gman_do('i2_auto_bid',Json::encode($data));
+              sleep(1);		
+							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 end (2016.10.05)
+              //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
+              //$bidkey->constdt=date('Y-m-d H:i:s',strtotime('+1 hour',$endDateTime));
+              //$bidkey->save();
+              
+              if(time()<$endDateTime){
+                  $msg=[];
+                  $msg[]="입찰마감일을 확인하세요.";
+                  $msg[]="공고번호 : {$bidkey->notinum}";									
+                  $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
+                  //if($row['purchaseType']!=='Product'){
+                    $this->module->gman_talk(join("\n",$msg),[
+                      149, //양정한
+                      155, //박경찬
+                      254, //김홍인
+											150, //이광용
+                    ]);
+                  //}
+              } 
+                         
+            }/*else if($closedt!=$endDateTime and $endDateTime-$closedt < 0 and $bidkey->state=='Y'){
+              $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
+              
+							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 start (2016.10.05)
+							$data['closedt']=date('Y-m-d H:i:s',strtotime($row['endDateTime']));
+              $data['constdt']=date('Y-m-d H:i:s',strtotime('+1 hour',strtotime($data['closedt'])));
+              if($row['bidAttendRequestCloseDateTime']){
+                $data['registdt']=date('Y-m-d H:i:s',strtotime($row['bidAttendRequestCloseDateTime']));
+              }
+              $data['previd']=$bidkey->bidid;
+              $data['bidproc']='M';
+              $data['whereis']=$bidkey->whereis;
+              $data['notinum']=$bidkey->notinum;
+              $data['constnm']=$bidkey->constnm;
+              $data['bidid']=$bidkey->bidid;
+              $this->module->gman_do('i2_auto_bid',Json::encode($data));
+							print_r($endDateTime-$closedt);
+              sleep(1);		
+							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 end (2016.10.05)
               //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
               //$bidkey->constdt=date('Y-m-d H:i:s',strtotime('+1 hour',$endDateTime));
               //$bidkey->save();
@@ -184,17 +239,19 @@ class WatchController extends \yii\console\Controller
                   $msg=[];
                   $msg[]="입찰마감일을 확인하세요.";
                   $msg[]="공고번호 : {$bidkey->notinum}";
+									$msg[]="한전공고마감일이 앞으로 당겨졌습니다.";
                   $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
                   //if($row['purchaseType']!=='Product'){
                     $this->module->gman_talk(join("\n",$msg),[
-                      149, //양정한
-                      155, //박경찬
-                      254, //김홍인
+                      //149, //양정한
+                      //155, //박경찬
+                      //254, //김홍인
+											150, //이광용
                     ]);
                   //}
               } 
                          
-            }
+            }*/
 
             return;
           }
