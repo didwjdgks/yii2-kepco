@@ -78,7 +78,7 @@ class Suc2WorkAction extends \yii\base\Action
       }
       $this->module->db->close();
       $this->memory_usage();
-      sleep(1);
+      sleep(60);
     });
     while($w->work());
   }

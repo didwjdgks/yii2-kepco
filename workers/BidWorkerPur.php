@@ -258,6 +258,17 @@ class BidWorkerPur extends Worker
 			}
 		}
 
+		// 한전 구매입찰 사정범위 자동입력
+		// 한국전력공사(KA) : -2.5%~+2.5%
+		// 한국서부발전(KE),한국남부발전(KC),한국중부발전(KG),한국남동발전(KB),한국동서발전(KD),한전KPS(KI) : -2%~+2%
+		$comCase5 = array("COM01");
+		$comCase6 = array("COM02","COM04","COM05","COM06","COM08","COM10");
+		if(in_array($basicInfo['companyId'],$comCase5)) {
+			$data['yegarng'] = '-2.5|+2.5';
+		}else if(in_array($basicInfo['companyId'],$comCase6)) {
+			$data['yegarng'] = '-2|+2';
+		}
+
 		//contract
     if($basicInfo['competitionType']=='Limited')	$data['contract'] = '20';
     else if($basicInfo['competitionType']=='Open')	$data['contract'] = '10';
@@ -312,8 +323,14 @@ class BidWorkerPur extends Worker
 		//state
 		$data['state'] = 'N';
 
-    $data['bid_html'] = "<pre><strong>계약조건 공시장소 : </strong><br><br>".$basicInfo['mailBidDistribution']."<br><br><strong>계약착수일 및 완료일 : </strong><br><br>".$basicInfo['contractBeginEndDate']."<br><br><strong>입찰시 제출서류 : </strong><br><br>".$basicInfo['bidAttendDocument']. "<br><br><strong>입찰참가자격 : </strong><br><br>".$basicInfo['bidAttendRestrict']."<br><br><strong>입찰보증금귀속 : </strong><br><br>".$basicInfo['bidBondBelong']."<br><br><strong>입찰무효사항: </strong><br><br>".$basicInfo['bidNullification']."<br><br><strong>입찰참가신청서류 : </strong><br><br>". $basicInfo['bidAttendRequestDocument']."<br><br><strong>추가정보제공처 : </strong><br><br>".$basicInfo['moreInformation']."<br><br><strong>기타공고사항 : </strong><br><br>".$basicInfo['etc']."</pre>";
+		//정정사유
+		$data['bidcomment_mod'] = $basicInfo['changeReason'];
 
+    $data['bid_html'] = "<div style='line-height:2.3em'><pre><strong>공고명 : </strong><br><br>".$basicInfo['name']."<br><br><strong>공고번호 : </strong><br><br>".$basicInfo['no'].'-'.$basicInfo['revision']."<br><br><strong>공고일자 : </strong><br><br>".$data['noticedt']."<br><br><strong>입찰담당부서 : </strong><br><br>".$basicInfo['purchaseGroupUserName']."<br><br><strong>입찰담당자 : </strong><br><br>".$basicInfo['representativeName']."<br><br><strong>납품장소 : </strong><br><br>".$basicInfo['deliveryLocation']."<br><br><strong>납기 : </strong><br><br>".$basicInfo['deliveryDueDate']."<br><br><strong>낙찰자결정방법상세 : </strong><br><br>".$basicInfo['bidTypeDetail']."<br><br><strong>입찰참가신청마감일시 : </strong><br><br>".$data['registdt']."<br><br><strong>입찰서제출 마감일시 : </strong><br><br>".$data['closedt']."<br><br><strong>계약조건 공시장소 : </strong><br><br>".$basicInfo['mailBidDistribution']."<br><br><strong>계약착수일 및 완료일 : </strong><br><br>".$basicInfo['contractBeginEndDate']."<br><br><strong>입찰시 제출서류 : </strong><br><br>".$basicInfo['bidAttendDocument']. "<br><br><strong>입찰참가자격 : </strong><br><br>".$basicInfo['bidAttendRestrict']."<br><br><strong>입찰보증금귀속 : </strong><br><br>".$basicInfo['bidBondBelong']."<br><br><strong>입찰무효사항: </strong><br><br>".$basicInfo['bidNullification']."<br><br><strong>입찰참가신청서류 : </strong><br><br>". $basicInfo['bidAttendRequestDocument']."<br><br><strong>추가정보제공처 : </strong><br><br>".$basicInfo['moreInformation']."<br><br><strong>기타공고사항 : </strong><br><br>".$basicInfo['etc']."</pre></div>";
+
+
+/*    $data['bid_html'] = "<p style='LINE-HEIGHT: 2'><strong>공고명 : </strong><br><br>".$basicInfo['name']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>공고번호 : </strong><br><br>".$basicInfo['no'].'-'.$basicInfo['revision']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>공고일자 : </strong><br><br>".$data['noticedt']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰담당부서 : </strong><br><br>".$basicInfo['purchaseGroupUserName']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰담당자 : </strong><br><br>".$basicInfo['representativeName']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>납품장소 : </strong><br><br>".$basicInfo['deliveryLocation']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>납기 : </strong><br><br>".$basicInfo['deliveryDueDate']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>낙찰자결정방법상세 : </strong><br><br>".$basicInfo['bidTypeDetail']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰참가신청마감일시 : </strong><br><br>".$data['registdt']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰서제출 마감일시 : </strong><br><br>".$data['closedt']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>계약조건 공시장소 : </strong><br><br>".$basicInfo['mailBidDistribution']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>계약착수일 및 완료일 : </strong><br><br>".$basicInfo['contractBeginEndDate']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰시 제출서류 : </strong><br><br>".$basicInfo['bidAttendDocument']. "</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰참가자격 : </strong><br><br>".$basicInfo['bidAttendRestrict']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰보증금귀속 : </strong><br><br>".$basicInfo['bidBondBelong']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰무효사항: </strong><br><br>".$basicInfo['bidNullification']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>입찰참가신청서류 : </strong><br><br>". $basicInfo['bidAttendRequestDocument']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>추가정보제공처 : </strong><br><br>".$basicInfo['moreInformation']."</p><p style='LINE-HEIGHT: 2'><br><br><strong>기타공고사항 : </strong><br><br>".$basicInfo['etc']."</p>";
+*/
     //품목정보
     if(is_array($bidItems)){
       foreach($bidItems as $i=>$item){
@@ -346,25 +363,29 @@ class BidWorkerPur extends Worker
     $data['attchd_lnk']=join('|',$files);
 
 		$sublocal = '';
-		if(is_array($locationInfo)){			
-			foreach($locationInfo as $loc){				
+		$sublocal2 = array();
+		if(is_array($locationInfo)) {			
+			foreach($locationInfo as $loc) {			
 				if(($data['location']&pow(2,$location[$loc['areaCodeName']]))==0)	$data['location']+=pow(2,$location[$loc['areaCodeName']]);
-				
-				if($loc['subAreaCodeName']!==null and $loc['subAreaCodeName']!==''){
-					if(strpos($sublocal,$loc['subAreaCodeName'])===false){
+			
+				if($loc['subAreaCodeName']!==null and $loc['subAreaCodeName']!=='') {
+					
+					list($sigun,$gu)=explode(' ',$loc['subAreaCodeName']);
+					if(!in_array($sigun/*$loc['subAreaCodeName']*/,$sublocal2)) {
 						$data['bid_local'][]=[
-							'name'=>$this->renameLoc($loc['areaCodeName'])." ".$loc['subAreaCodeName'],
+							'name'=>$this->renameLoc($loc['areaCodeName'])." ".$sigun/*$loc['subAreaCodeName']*/,
 							'hname'=>$this->renameLoc($loc['areaCodeName']),
 						];
 
-						if($sublocal=='')	$sublocal=trim($loc['subAreaCodeName']);
-						else	$sublocal=$sublocal.','.trim($loc['subAreaCodeName']);
+						if($sublocal=='')	$sublocal=trim($sigun/*$loc['subAreaCodeName']*/);
+						else	$sublocal=$sublocal.','.trim($sigun/*$loc['subAreaCodeName']*/);
 						$sublocal=trim($sublocal);
+
+						$sublocal2[]=$sigun/*$loc['subAreacodeName']*/;		
 					}
 				}
 			}			
 		}
-
     return $data;
   }
 

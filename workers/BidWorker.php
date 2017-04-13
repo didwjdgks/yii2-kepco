@@ -82,7 +82,7 @@ class BidWorker extends Worker
         case 'findBidBasicInfo': $basicInfo=$row['result']; break;
         case 'getFileItemList': $fileList=$row['result']; break;
         case 'findLicenseCodeData': $licenseInfo=$row['result']; break;
-				case 'findRegionCodeData' : $locationInfo=$row['result']; break;
+		case 'findRegionCodeData' : $locationInfo=$row['result']; break;
         case 'findBidItems':
           $bidItems=$row['result'];
           break;
@@ -167,7 +167,7 @@ class BidWorker extends Worker
 
 		//constnm
 		$data['constnm'] = $basicInfo['name'];
-		
+				
 		if($data['syscode']=='KBC' and strpos($data['constnm'],'용역')!==false){
 			$data['bidtype']	= 'ser';
 			$data['bidview']	= 'ser';
@@ -251,6 +251,7 @@ class BidWorker extends Worker
 		if($basicInfo['jointSupplyDemandYn'])	$data['convention'] = '2';
 		else	$data['convention'] = '0';
 
+		$data['jointSupplyDemandYn'] = $basicInfo['jointSupplyDemandYn'];
 		//prsum
 		$data['presum'] = $basicInfo['presumedPrice'];
 		
@@ -282,6 +283,8 @@ class BidWorker extends Worker
 
     $files=[];
 		$data['bidcomment'] = $basicInfo['etc']; // or $data['bidcomment']=$basicInfo['bidAttendRestrict'];
+		//정정사유
+		$data['bidcomment_mod'] = $basicInfo['changeReason'];
 
     //자동첨부파일
     if(is_array($fileList)){
@@ -300,25 +303,29 @@ class BidWorker extends Worker
     $data['attchd_lnk']=join('|',$files);
 
 		$sublocal = '';
-		if(is_array($locationInfo)){			
-			foreach($locationInfo as $loc){			
+		$sublocal2 = array();
+		if(is_array($locationInfo)) {			
+			foreach($locationInfo as $loc) {			
 				if(($data['location']&pow(2,$location[$loc['areaCodeName']]))==0)	$data['location']+=pow(2,$location[$loc['areaCodeName']]);
 			
-				if($loc['subAreaCodeName']!==null and $loc['subAreaCodeName']!==''){
-					if(strpos($sublocal,$loc['subAreaCodeName'])===false){
+				if($loc['subAreaCodeName']!==null and $loc['subAreaCodeName']!=='') {
+					
+					list($sigun,$gu)=explode(' ',$loc['subAreaCodeName']);
+					if(!in_array($sigun/*$loc['subAreaCodeName']*/,$sublocal2)) {
 						$data['bid_local'][]=[
-							'name'=>$this->renameLoc($loc['areaCodeName'])." ".$loc['subAreaCodeName'],
+							'name'=>$this->renameLoc($loc['areaCodeName'])." ".$sigun/*$loc['subAreaCodeName']*/,
 							'hname'=>$this->renameLoc($loc['areaCodeName']),
 						];
 
-						if($sublocal=='')	$sublocal=trim($loc['subAreaCodeName']);
-						else	$sublocal=$sublocal.','.trim($loc['subAreaCodeName']);
+						if($sublocal=='')	$sublocal=trim($sigun/*$loc['subAreaCodeName']*/);
+						else	$sublocal=$sublocal.','.trim($sigun/*$loc['subAreaCodeName']*/);
 						$sublocal=trim($sublocal);
+
+						$sublocal2[]=$sigun/*$loc['subAreacodeName']*/;		
 					}
 				}
 			}			
 		}
-
     return $data;
   }
 

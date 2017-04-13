@@ -67,8 +67,14 @@ class WorkController extends \yii\console\Controller
         ->orderBy('bidid desc')
         ->limit(1)->one();
 		
-        if($bidkey===null) return;
-        if($data['bidproc']===null) return;
+        if($bidkey===null) {
+					//$this->stdout2(" %ybidkey is null%n\n");	
+					return;
+				}
+        if($data['bidproc']===null) {
+					//$this->stdout2(" %ybidproc is null%n\n");	
+					return;
+				}
 
         $this->stdout2(" %yNEW%n\n");
 
@@ -90,7 +96,7 @@ class WorkController extends \yii\console\Controller
       (memory_get_peak_usage(true)/1024/1024)
     ),Console::FG_GREY);
 			
-      sleep(1);
+      sleep(10);
     });
       while($w->work());
   }

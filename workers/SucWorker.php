@@ -110,12 +110,16 @@ class SucWorker extends Worker
 				$succom['etc'][] = $row['note'];
 			}
 
-		$size = count($succom['officenm'])-1;
+			$size = count($succom['officenm'])-1;
 			for($i=0; $i<=$size; $i++){                                                    //정리
 				$data[$i]['prenm'] = $succom['prenm'][$i];
 				$data[$i]['officenm'] = $succom['officenm'][$i];
 				$data[$i]['officeno'] = $succom['officeno'][$i];
-				$data[$i]['success'] = preg_replace('/[^0-9]*/s','',$succom['success'][$i]).'.00';
+				if(strpos(preg_replace('/[^0-9.]*/s','',$succom['success'][$i]),'.') === false){					
+					$data[$i]['success'] = preg_replace('/[^0-9.]*/s','',$succom['success'][$i]).'.00';					
+				}else{
+					$data[$i]['success'] = preg_replace('/[^0-9.]*/s','',$succom['success'][$i]);
+				}				
 				$data[$i]['pct'] = $succom['pct'][$i];
 				$data[$i]['etc'] = $succom['etc'][$i];
 				if($data[$i]['etc'] =='낙찰'){
@@ -234,7 +238,12 @@ class SucWorker extends Worker
 				$data[$i]['prenm'] = $succom['prenm'][$i];
 				$data[$i]['officenm'] = $succom['officenm'][$i];
 				$data[$i]['officeno'] = $succom['officeno'][$i];
-				$data[$i]['success'] = preg_replace('/[^0-9]*/s','',$succom['success'][$i]).'.00';
+				//$data[$i]['success'] = preg_replace('/[^0-9]*/s','',$succom['success'][$i]).'.00';
+				if(strpos(preg_replace('/[^0-9.]*/s','',$succom['success'][$i]),'.') === false){
+					$data[$i]['success'] = preg_replace('/[^0-9.]*/s','',$succom['success'][$i]).'.00';
+				}else{
+					$data[$i]['success'] = preg_replace('/[^0-9.]*/s','',$succom['success'][$i]);
+				}				
 				$data[$i]['pct'] = $succom['pct'][$i];
 				$data[$i]['etc'] = $succom['etc'][$i];
 				if($data[$i]['etc'] > 0 ){

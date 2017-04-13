@@ -16,7 +16,7 @@ class DelayWatcher extends Watcher
         'data'=>[
           [
             'companyId'=>'ALL',
-            'fromNoticeDate'=>date('Y-m-d',strtotime('-1 month')).'T00:00:00',
+            'fromNoticeDate'=>date('Y-m-d',strtotime('-20 day')).'T00:00:00',
             'toNoticeDate'=>date('Y-m-d').'T00:00:00',		
             'limit'=>100,
             'page'=>1,
@@ -49,7 +49,7 @@ class DelayWatcher extends Watcher
           $callback($row);
         }
         $this->sub->publish('kepco-login','ok');
-        sleep(1);
+        sleep(20);
       }
     }
     catch(\Exception $e){

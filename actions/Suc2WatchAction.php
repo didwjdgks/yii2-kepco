@@ -89,7 +89,7 @@ class Suc2WatchAction extends \yii\base\Action
             }
 
           }
-          sleep(5);
+          sleep(10);
         }//end foreach
       }
       catch(\Exception $e){
@@ -98,7 +98,7 @@ class Suc2WatchAction extends \yii\base\Action
       }
       $this->module->db->close();
       $this->memory_usage();
-      sleep(30);
+      sleep(60);
     }
   }
 }

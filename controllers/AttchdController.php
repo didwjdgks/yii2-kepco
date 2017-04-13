@@ -54,7 +54,7 @@ class AttchdController extends \yii\console\Controller
         date('Y-m-d H:i:s'),
         (memory_get_peak_usage(true)/1024/1024))
         ,Console::FG_GREY);
-      sleep(1);
+      sleep(15);
     });
     while($w->work());
   }

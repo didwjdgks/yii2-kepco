@@ -16,9 +16,12 @@ class SucWatcher extends Watcher
         [
           'companyId'=>'ALL',
           'fromNoticeDate'=>date('Y-m-d',strtotime('-60 day')).'T00:00:00',
-          'toNoticeDate'=>date('Y-m-d').'T00:00:00',					
+          'toNoticeDate'=>date('Y-m-d',strtotime('-31 day')).'T00:00:00',
+					//'fromNoticeDate'=>date('Y-m-d',strtotime('-30 day')).'T00:00:00',
+					//'toNoticeDate'=>date('Y-m-d',strtotime('-2 day')).'T00:00:00',
           'limit'=>100,
           'page'=>1,
+					//'no'=>'E011702350',
           'start'=>0,
           'totalCount'=>0,
         ],
@@ -47,7 +50,7 @@ class SucWatcher extends Watcher
           $callback($row);
         }
         $this->sub->publish('kepco-login','ok');
-        sleep(1);
+        sleep(10);
       }
     }
     catch(\Exception $e){

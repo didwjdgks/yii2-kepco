@@ -16,10 +16,10 @@ class BidWatcher extends Watcher
         'data'=>[
           [
             'companyId'=>'ALL',
-            'fromNoticeDate'=>date('Y-m-d',strtotime('-2 month')).'T00:00:00',
+            'fromNoticeDate'=>date('Y-m-d',strtotime('-60 day')).'T00:00:00',
             'toNoticeDate'=>date('Y-m-d').'T00:00:00',						
-            'limit'=>30,
-						//'no'=>'G141618003',
+            'limit'=>30,						
+						//'no'=>'E011703626',
             'page'=>1,
             'start'=>0,
             'totalCount'=>0,
@@ -50,7 +50,7 @@ class BidWatcher extends Watcher
           $callback($row);
         }
         $this->sub->publish('kepco-login','ok');
-        sleep(1);
+        sleep(20);
       }
     }
     catch(\Exception $e){

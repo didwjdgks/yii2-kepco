@@ -9,6 +9,8 @@ use kepco\watchers\BidWatcher;
 use kepco\watchers\SucWatcher;
 
 use kepco\models\BidKey;
+use kepco\models\BidContent;
+use kepco\models\Time_Test;
 
 class WatchController extends \yii\console\Controller
 {
@@ -32,6 +34,7 @@ class WatchController extends \yii\console\Controller
   }
 
   public function actionBid(){
+		$timet = new Time_Test;		
     while(true){
       try{
         $cookie=$this->module->redis_get('kepco.cookie');
@@ -42,12 +45,16 @@ class WatchController extends \yii\console\Controller
           'token'=>$token,
         ]);
         $delay->on('kepco-login',function($event){
-            $this->stdout2(" > %g로그인을 요청합니다.%n\n");
-            $this->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+            $this->stdout2(" > %g kepco 로그인을 요청합니다.%n\n");
+            $this->module->gman_talk("kepco 로그인을 요청합니다. 확인하십시요.",[
               142, //송치문
               149, //양정한
               150, //이광용
             ]);
+				$timet['uptime'] = date("Y-m-d H:i:s");
+				$timet['content'] = 'kepco login';
+			print_r($timet);
+			//	$timet->save();
         });
         $delay->watch(function($row){
           $this->stdout2("%g한전입찰> [delay] {$row['no']} {$row['revision']} {$row['name']}\n");
@@ -78,24 +85,69 @@ class WatchController extends \yii\console\Controller
               $data['notinum']=$bidkey->notinum;
               $data['constnm']=$bidkey->constnm;
               $data['bidid']=$bidkey->bidid;
+
+              if($bidkey->state!=='Y'){
+                $this->stdout2("%g 검수가 아직 안됐습니다.\n");
+                return;
+              }
+
+              $bidcontent=BidContent::find()->where("bidid = '{$bidkey->bidid}'")->limit(1)->one();
+
+              $data['attchd_lnk']=iconv('euckr','utf-8',$bidcontent->attchd_lnk);
+
+              list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
+              $b=sprintf('%02s',intval($b)+1);
+              $newid="$a-$b-$c-$d";
+
+              $data['newid']=$newid;
+
+              if(!empty($data['attchd_lnk'])){
+                $this->stdout2("%y > {$newid}%n\n");
+                $this->module->gman_doBack('kepco_file_download',[
+                  'bidid'=>$newid,
+                  'attchd_lnk'=>$data['attchd_lnk'],
+                ]);
+              }
               $this->module->gman_do('i2_auto_bid',Json::encode($data));
-              sleep(1);
+
+              sleep(20);
+
+              if(time()<$endDateTime){
+                  $msg=[];
+                  $msg[]="입찰마감일을 확인하세요.";
+                  $msg[]="공고번호 : {$bidkey->notinum}";									
+                  $msg[]="공고명 : {$bidkey->constnm}";									
+                  $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
+                  //if($row['purchaseType']!=='Product'){
+                    $this->module->gman_talk(join("\n",$msg),[
+                      149, //양정한
+                      155, //박경찬
+                      254, //김홍인
+                      150, //이광용
+                    ]);
+                  //}
+              }
             }
           }
         });
-        sleep(5);
+        sleep(20);
 
         $bid=new BidWatcher([
           'cookie'=>$cookie,
           'token'=>$token,
         ]);
+				
         $bid->on('kepco-login',function($event){
             $this->stdout2(" > %g로그인을 요청합니다.%n\n");
-            $this->module->gman_talk("로그인을 요청합니다. 확인하십시요.",[
+            $this->module->gman_talk("kepco 로그인을 요청합니다. 확인하십시요.",[
               142, //송치문
               149, //양정한
               150, //이광용
             ]);
+			$timet['uptime'] = date("Y-m-d H:i:s");
+			$timet['content'] = 'kepco login';
+			print_r($timet);
+			//$timet->save();
         });
 
         $bid->watch(function($row){
@@ -128,9 +180,10 @@ class WatchController extends \yii\console\Controller
             if(($row['resultState']==='Cancel' or $row['noticeType']==='Cancel') and $bidkey->bidproc!=='C'){
               $this->stdout2("\n%g > 취소공고 입력을 요청합니다.%n\n");
               $this->module->gman_do('kepco_work_bid',$row);
-              sleep(1);
+              sleep(25);
               return;
             }
+
             if(($row['revision']>1 or $row['noticeType']==='Correct') and $row['resultState']!=='Cancel'){
               $p_notinum=str_replace('-','',$bidkey->notinum);
               if(strlen($p_notinum)===10) $p_revision=1;
@@ -138,16 +191,44 @@ class WatchController extends \yii\console\Controller
               if($p_revision<$row['revision']){
                 $this->stdout2(" %yMODIFY%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(1);
+                sleep(25);
                 return;
               }
             }
+						if($row['changeReason']!==null and $row['changeReason']!==''){
+							$this->stdout2("\n %y changeReason-----------> : {$row['changeReason']}\n");
+							$p_notinum=str_replace('-','',$bidkey->notinum);
+              if(strlen($p_notinum)===10) $p_revision=1;
+              else $p_revision=substr($p_notinum,10);
+							
+							if($p_revision=='1') {
+								$row['revision']=sprintf('%s',intval($row['revision'])+1);
+								$this->stdout2(" %yMODIFY%n\n");
+                $this->module->gman_do('kepco_work_bid',$row);
+                sleep(25);
+                return;
+							}
+						}
+						//신규공고인데 제목에 [정정] 붙었을때 정정처리
+						if($row['noticeType']==='New' and strpos($row['name'],'[정정]')!==false) {
+							$p_notinum=str_replace('-','',$bidkey->notinum);
+              if(strlen($p_notinum)===10) $p_revision=1;
+              else $p_revision=substr($p_notinum,10);
+							
+							if($p_revision=='1') {
+								$row['revision']=sprintf('%s',intval($row['revision'])+1);
+								$this->stdout2(" %yMODIFY%n\n");
+                $this->module->gman_do('kepco_work_bid',$row);
+                sleep(25);
+                return;
+							}
+						}
             if($row['noticeType']==='ReBidding' and $row['bidRevision']>1){
               list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
               if(intval($c)<$row['bidRevision']){
                 $this->stdout2(" %yREBID%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(1);
+                sleep(25);
                 return;
               }
             }
@@ -162,7 +243,7 @@ class WatchController extends \yii\console\Controller
               if(empty($bidkey->basic) or $bidkey->basic==0){
                 $this->stdout2(" %yBASIC%n\n");
                 $this->module->gman_do('kepco_work_basic',$row);
-                sleep(1);
+                sleep(10);
                 return;
               }
             }
@@ -175,11 +256,11 @@ class WatchController extends \yii\console\Controller
             $closedt=strtotime($bidkey->closedt);
             $interval=abs($endDateTime-$closedt);
             if($closedt!=$endDateTime and $interval>=3600 and $bidkey->state=='Y'){
-						//if($closedt!=$endDateTime and $endDateTime-$closedt >=3600 and $bidkey->state=='Y'){
+            //if($closedt!=$endDateTime and $endDateTime-$closedt >=3600 and $bidkey->state=='Y'){
               $this->stdout2("%y > {$row['endDateTime']} : {$bidkey->closedt}%n\n");
               
-							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 start (2016.10.05)
-							$data['closedt']=date('Y-m-d H:i:s',strtotime($row['endDateTime']));
+              // 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 start (2016.10.05)
+              $data['closedt']=date('Y-m-d H:i:s',strtotime($row['endDateTime']));
               $data['constdt']=date('Y-m-d H:i:s',strtotime('+1 hour',strtotime($data['closedt'])));
               if($row['bidAttendRequestCloseDateTime']){
                 $data['registdt']=date('Y-m-d H:i:s',strtotime($row['bidAttendRequestCloseDateTime']));
@@ -190,8 +271,26 @@ class WatchController extends \yii\console\Controller
               $data['notinum']=$bidkey->notinum;
               $data['constnm']=$bidkey->constnm;
               $data['bidid']=$bidkey->bidid;
+              $data['state']='Y';
+
+              $bidcontent=BidContent::find()->where("bidid = '{$bidkey->bidid}'")->limit(1)->one();
+              $data['attchd_lnk']=iconv('euckr','utf-8',$bidcontent->attchd_lnk);
+
+              list($a,$b,$c,$d)=explode('-',$bidkey->bidid);
+              $b=sprintf('%02s',intval($b)+1);
+              $newid="$a-$b-$c-$d";
+
+              $data['newid']=$newid;
+
+              if(!empty($data['attchd_lnk'])){
+                $this->stdout2("%y > {$newid}%n\n");
+                $this->module->gman_doBack('kepco_file_download',[
+                  'bidid'=>$newid,
+                  'attchd_lnk'=>$data['attchd_lnk'],
+                ]);
+              }
               $this->module->gman_do('i2_auto_bid',Json::encode($data));
-              sleep(1);		
+              sleep(10);		
 							// 연기공고 없이 입찰마감일 변경됐을시에도 연기공고 처리 end (2016.10.05)
               //$bidkey->closedt=date('Y-m-d H:i:s',$endDateTime);
               //$bidkey->constdt=date('Y-m-d H:i:s',strtotime('+1 hour',$endDateTime));
@@ -201,13 +300,14 @@ class WatchController extends \yii\console\Controller
                   $msg=[];
                   $msg[]="입찰마감일을 확인하세요.";
                   $msg[]="공고번호 : {$bidkey->notinum}";									
+                  $msg[]="공고명 : {$bidkey->constnm}";									
                   $msg[]="한전=".date('Y-m-d H:i:s',$endDateTime)." / 인포=".date('Y-m-d H:i:s',$closedt);
                   //if($row['purchaseType']!=='Product'){
                     $this->module->gman_talk(join("\n",$msg),[
                       149, //양정한
                       155, //박경찬
                       254, //김홍인
-											150, //이광용
+                      150, //이광용
                     ]);
                   //}
               } 
@@ -263,7 +363,7 @@ class WatchController extends \yii\console\Controller
 
           $this->stdout2(" %yNEW%n\n");
           $this->module->gman_do('kepco_work_bid',$row);
-          sleep(1);
+          sleep(20);
         }); // end watch()
       }
       catch(\Exception $e){
@@ -273,7 +373,7 @@ class WatchController extends \yii\console\Controller
 
       $this->module->db->close();
       $this->memory_usage();
-      sleep(1);
+      sleep(20);
     }
   }
 }
