@@ -110,7 +110,7 @@ class WatchController extends \yii\console\Controller
               }
               $this->module->gman_do('i2_auto_bid',Json::encode($data));
 
-              sleep(20);
+              sleep(15);
 
               if(time()<$endDateTime){
                   $msg=[];
@@ -130,8 +130,11 @@ class WatchController extends \yii\console\Controller
             }
           }
         });
-        sleep(20);
+        sleep(15);
 
+
+				$this->stdout2("%y > watch cookie =>  {$cookie}%n\n");
+				$this->stdout2("%y > watch token =>  {$token}%n\n");		
         $bid=new BidWatcher([
           'cookie'=>$cookie,
           'token'=>$token,
@@ -152,6 +155,8 @@ class WatchController extends \yii\console\Controller
 
         $bid->watch(function($row){
           $this->stdout2("한전입찰> %g[watcher]%n {$row['no']} {$row['revision']} {$row['name']}");
+					//$this->stdout2("%y > watch cookie =>  {$cookie}%n\n");
+					//$this->stdout2("%y > watch token =>  {$token}%n\n");
           $notinum=$row['no'];
           
           if($row['progressState']=='Close' || $row['progressState']=='OpenTimed' || $row['progressState']=='Fail'
@@ -180,7 +185,7 @@ class WatchController extends \yii\console\Controller
             if(($row['resultState']==='Cancel' or $row['noticeType']==='Cancel') and $bidkey->bidproc!=='C'){
               $this->stdout2("\n%g > 취소공고 입력을 요청합니다.%n\n");
               $this->module->gman_do('kepco_work_bid',$row);
-              sleep(25);
+              sleep(20);
               return;
             }
 
@@ -191,7 +196,7 @@ class WatchController extends \yii\console\Controller
               if($p_revision<$row['revision']){
                 $this->stdout2(" %yMODIFY%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(25);
+                sleep(20);
                 return;
               }
             }
@@ -205,7 +210,7 @@ class WatchController extends \yii\console\Controller
 								$row['revision']=sprintf('%s',intval($row['revision'])+1);
 								$this->stdout2(" %yMODIFY%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(25);
+                sleep(20);
                 return;
 							}
 						}
@@ -219,7 +224,7 @@ class WatchController extends \yii\console\Controller
 								$row['revision']=sprintf('%s',intval($row['revision'])+1);
 								$this->stdout2(" %yMODIFY%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(25);
+                sleep(20);
                 return;
 							}
 						}
@@ -228,7 +233,7 @@ class WatchController extends \yii\console\Controller
               if(intval($c)<$row['bidRevision']){
                 $this->stdout2(" %yREBID%n\n");
                 $this->module->gman_do('kepco_work_bid',$row);
-                sleep(25);
+                sleep(20);
                 return;
               }
             }
@@ -281,8 +286,8 @@ class WatchController extends \yii\console\Controller
               $newid="$a-$b-$c-$d";
 
               $data['newid']=$newid;
-
-              if(!empty($data['attchd_lnk'])){
+							
+							if(!empty($data['attchd_lnk'])){
                 $this->stdout2("%y > {$newid}%n\n");
                 $this->module->gman_doBack('kepco_file_download',[
                   'bidid'=>$newid,
@@ -363,7 +368,7 @@ class WatchController extends \yii\console\Controller
 
           $this->stdout2(" %yNEW%n\n");
           $this->module->gman_do('kepco_work_bid',$row);
-          sleep(20);
+          sleep(15);
         }); // end watch()
       }
       catch(\Exception $e){

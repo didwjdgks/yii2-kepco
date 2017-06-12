@@ -107,6 +107,7 @@ class SucWatchAction extends \yii\base\Action
 			$this->stdout(" %y one cycle execute !!!!!!!!!!!!%n\n");
 			$this->stdout(" %y one cycle execute !!!!!!!!!!!!%n\n");
 			$this->stdout(" %y one cycle execute !!!!!!!!!!!!%n\n");
+
       sleep(3600);
     }		
   }

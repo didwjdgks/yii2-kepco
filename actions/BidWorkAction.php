@@ -113,6 +113,13 @@ class BidWorkAction extends \yii\base\Action
           $data=$bid->run();
         }
 				
+				$this->stdout("%r > conv before constnm : \n {$data['constnm']} %n\n");
+				$search = array("․");
+				$re_constnm = str_replace($search,' ',$data['constnm']);
+				
+				$data['constnm'] = iconv("UTF-8","UTF-8//IGNORE",preg_replace('/〜/u',' ',$re_constnm));
+				//$data['constnm'] = iconv("UTF-8","UTF-8//IGNORE",preg_replace('/〜/u',' ',$data['constnm']));
+				$this->stdout("%g > conv after constnm : \n {$data['constnm']} %n\n");
         $this->stdout("%r > location code : {$data['syscode']} {$data['convention']}%n\n");
 				//$this->stdout("%r > bid_local : {$data['bid_local']}%n\n");
         print_r($data['bid_local']);				

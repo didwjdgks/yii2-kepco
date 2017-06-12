@@ -42,7 +42,8 @@ class Module extends \yii\base\Module
   public function gman_talk($msg,$recv=[]){
     if($this->talk_client===null){
       $this->talk_client=new \GearmanClient;
-      $this->talk_client->addServers('115.68.48.242');
+      $this->talk_client->addServers('115.68.48.245');
+			//$this->talk_client->addServers('115.68.48.242');
     }
     if(empty($recv)) $recv[]=149;
     $msg="==한국전력공사==\n".$msg;

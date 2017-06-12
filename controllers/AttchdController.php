@@ -33,6 +33,8 @@ class AttchdController extends \yii\console\Controller
         $cookie=$this->module->redis_get('kepco.cookie');
         $token=$this->module->redis_get('kepco.token');
 
+				$this->stdout("%y > attchd cookie =>  {$cookie}%n\n");
+				$this->stdout("%y > attchd token =>  {$token}%n\n");
         $downinfo=explode('|',$attchd_lnk);
         foreach($downinfo as $info){
           $this->stdout(" > $info\n");

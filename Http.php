@@ -28,6 +28,8 @@ class Http extends \yii\base\Component
         'User-Agent'=>'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36',
         'Cookie'=>$this->cookie,
         'X-CSRF-TOKEN'=>$this->token,
+				//'Cookie'=>'WMONID=MjsXQm-vWwH; SRM_ID=iooTx8NFt_6q0q4T5TErVVmY3OWfR3t0Z_GNnXqzbyjCgTlBjkv7!-268266697!1358308370; Login=true',
+        //'X-CSRF-TOKEN'=>'674e6455-a8b1-4329-9b9d-ed4fde45acff',
       ],
     ]);
 
